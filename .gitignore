@@ -1,0 +1,29 @@
+# Node / React
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Python / FastAPI
+ai-service/.venv/
+ai-service/__pycache__/
+ai-service/app/__pycache__/
+ai-service/.env
+
+# Java / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Environment files
+.env
+*.env
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
