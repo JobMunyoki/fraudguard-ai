@@ -34,6 +34,7 @@ import {
 import {
   Assessment,
   DashboardCustomize,
+  History,
   NotificationsActive,
   ReceiptLong,
   Save,
@@ -66,6 +67,11 @@ const sidebarItems = [
     path: "/reports",
     icon: <Assessment />,
   },
+  {
+  label: "Audit Logs",
+  path: "/audit-logs",
+  icon: <History />,
+},
   {
     label: "Settings",
     path: "/settings",

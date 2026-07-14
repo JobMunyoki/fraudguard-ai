@@ -16,12 +16,15 @@ public class BankTransactionService {
 
     private final BankTransactionRepository repository;
     private final AiPredictionService aiPredictionService;
+    private final AuditLogService auditLogService;
 
     public BankTransactionService(
             BankTransactionRepository repository,
-            AiPredictionService aiPredictionService) {
+            AiPredictionService aiPredictionService,
+            AuditLogService auditLogService) {
         this.repository = repository;
         this.aiPredictionService = aiPredictionService;
+        this.auditLogService = auditLogService;
     }
 
     public BankTransaction createTransaction(BankTransaction transaction) {
@@ -46,7 +49,19 @@ public class BankTransactionService {
             transaction.setPredictionLabel(getPredictionLabel(riskScore));
         }
 
-        return repository.save(transaction);
+        BankTransaction savedTransaction = repository.save(transaction);
+
+        auditLogService.createLog(
+                "TRANSACTION_CREATED",
+                savedTransaction.getTransactionReference(),
+                "System",
+                "Transaction " + savedTransaction.getTransactionReference()
+                        + " was created and classified as "
+                        + savedTransaction.getPredictionLabel()
+                        + " with risk score "
+                        + savedTransaction.getRiskScore());
+
+        return savedTransaction;
     }
 
     public List<BankTransaction> getAllTransactions() {
@@ -65,8 +80,24 @@ public class BankTransactionService {
 
     public BankTransaction updateReviewStatus(Long id, ReviewStatus status) {
         BankTransaction transaction = getTransactionById(id);
+
+        ReviewStatus oldStatus = transaction.getReviewStatus();
+
         transaction.setReviewStatus(status);
-        return repository.save(transaction);
+
+        BankTransaction savedTransaction = repository.save(transaction);
+
+        auditLogService.createLog(
+                "REVIEW_STATUS_UPDATED",
+                savedTransaction.getTransactionReference(),
+                "Fraud Analyst",
+                "Transaction " + savedTransaction.getTransactionReference()
+                        + " review status changed from "
+                        + oldStatus
+                        + " to "
+                        + status);
+
+        return savedTransaction;
     }
 
     private double calculateTemporaryRiskScore(BankTransaction transaction) {

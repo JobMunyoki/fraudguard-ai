@@ -11,6 +11,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,  
   Divider,
   Drawer,
   Grid,
@@ -23,6 +27,7 @@ import {
   Select,
   Snackbar,
   Stack,
+  TablePagination,
   TextField,
   Toolbar,
   Typography,
@@ -32,6 +37,7 @@ import {
 import {
   Assessment,
   DashboardCustomize,
+  History,
   NotificationsActive,
   ReceiptLong,
   Refresh,
@@ -40,6 +46,7 @@ import {
   Warning,
   ReportProblem,
   PriorityHigh,
+  Visibility,
 } from "@mui/icons-material";
 import api from "../api/axiosConfig";
 
@@ -66,6 +73,11 @@ const sidebarItems = [
     path: "/reports",
     icon: <Assessment />,
   },
+  {
+  label: "Audit Logs",
+  path: "/audit-logs",
+  icon: <History />,
+},
   {
     label: "Settings",
     path: "/settings",
@@ -232,8 +244,11 @@ export default function FraudAlerts() {
   const [updating, setUpdating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [predictionFilter, setPredictionFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [selectedAlert, setSelectedAlert] = useState(null);
 
   async function loadAlerts() {
     try {
@@ -255,6 +270,10 @@ export default function FraudAlerts() {
     loadAlerts();
   }, []);
 
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, predictionFilter]);
+
   async function handleReviewStatus(transactionId, status) {
     try {
       setUpdating(true);
@@ -272,6 +291,27 @@ export default function FraudAlerts() {
     }
   }
 
+  function handleChangePage(event, newPage) {
+  setPage(newPage);
+  }
+
+  function handleChangeRowsPerPage(event) {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+    }
+
+    function handleOpenDetails(alert) {
+    setSelectedAlert(alert);
+  }
+
+  function handleCloseDetails() {
+    setSelectedAlert(null);
+  }
+
+  function formatCurrency(value) {
+    return `KES ${Number(value || 0).toLocaleString()}`;
+  }
+
   const filteredAlerts = useMemo(() => {
     return alerts.filter((alert) => {
       const searchText = searchTerm.toLowerCase();
@@ -287,6 +327,13 @@ export default function FraudAlerts() {
       return matchesSearch && matchesPrediction;
     });
   }, [alerts, searchTerm, predictionFilter]);
+
+  const paginatedAlerts = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+
+    return filteredAlerts.slice(startIndex, endIndex);
+  }, [filteredAlerts, page, rowsPerPage]);
 
   const fraudCount = alerts.filter(
     (alert) => alert.predictionLabel === "FRAUD"
@@ -496,9 +543,10 @@ export default function FraudAlerts() {
 
               {filteredAlerts.length === 0 ? (
                 <Typography color="text.secondary">
-                  No matching fraud alerts found.
+                No matching fraud alerts found.
                 </Typography>
               ) : (
+              <>
                 <Box sx={{ overflowX: "auto" }}>
                   <table
                     style={{
@@ -524,7 +572,7 @@ export default function FraudAlerts() {
                     </thead>
 
                     <tbody>
-                      {filteredAlerts.map((alert) => (
+                      {paginatedAlerts.map((alert) => (
                         <tr
                           key={alert.id}
                           style={{ borderBottom: "1px solid #e2e8f0" }}
@@ -591,6 +639,14 @@ export default function FraudAlerts() {
                               <Button
                                 size="small"
                                 variant="outlined"
+                                startIcon={<Visibility />}
+                                onClick={() => handleOpenDetails(alert)}
+                              >
+                                Details
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
                                 disabled={updating}
                                 onClick={() =>
                                   handleReviewStatus(alert.id, "UNDER_REVIEW")
@@ -639,11 +695,270 @@ export default function FraudAlerts() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+              </table>
                 </Box>
+
+                <TablePagination
+                  component="div"
+                  count={filteredAlerts.length}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+              </>
               )}
             </CardContent>
           </Card>
+
+<Dialog
+  open={Boolean(selectedAlert)}
+  onClose={handleCloseDetails}
+  maxWidth="md"
+  fullWidth
+>
+  <DialogTitle>
+    <Typography variant="h6" fontWeight="bold">
+      Fraud Alert Details
+    </Typography>
+
+    <Typography variant="body2" color="text.secondary">
+      Full fraud alert investigation and AI prediction details
+    </Typography>
+  </DialogTitle>
+
+  <DialogContent dividers>
+    {selectedAlert && (
+      <Box>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Transaction Information
+                </Typography>
+
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Reference
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedAlert.transactionReference}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Customer ID
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedAlert.customerId}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Transaction Type
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedAlert.transactionType}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Destination Account
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedAlert.destinationAccount || "N/A"}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Balance Movement
+                </Typography>
+
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Amount
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {formatCurrency(selectedAlert.amount)}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Old Balance
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {formatCurrency(selectedAlert.oldBalance)}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      New Balance
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {formatCurrency(selectedAlert.newBalance)}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Card variant="outlined" sx={{ borderRadius: 3 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Fraud Investigation Summary
+                </Typography>
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Risk Score
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedAlert.riskScore}
+                        color={
+                          Number(selectedAlert.riskScore) >= 70
+                            ? "error"
+                            : Number(selectedAlert.riskScore) >= 40
+                            ? "warning"
+                            : "success"
+                        }
+                      />
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Prediction
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedAlert.predictionLabel}
+                        color={getPredictionColor(selectedAlert.predictionLabel)}
+                      />
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Confidence
+                    </Typography>
+                    <Typography fontWeight="bold" mt={1}>
+                      {selectedAlert.confidence !== null &&
+                      selectedAlert.confidence !== undefined
+                        ? `${Number(selectedAlert.confidence * 100).toFixed(1)}%`
+                        : "N/A"}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Review Status
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedAlert.reviewStatus}
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Prediction Source
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedAlert.predictionSource || "UNKNOWN"}
+                        color={
+                          selectedAlert.predictionSource === "AI_SERVICE"
+                            ? "primary"
+                            : "default"
+                        }
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Model Used
+                    </Typography>
+                    <Typography fontWeight="bold" mt={1}>
+                      {selectedAlert.modelUsed || "N/A"}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+    )}
+  </DialogContent>
+
+  <DialogActions>
+    <Button onClick={handleCloseDetails}>Close</Button>
+
+    {selectedAlert && (
+      <>
+        <Button
+          variant="outlined"
+          onClick={() =>
+            handleReviewStatus(selectedAlert.id, "UNDER_REVIEW")
+          }
+          disabled={updating}
+        >
+          Mark Under Review
+        </Button>
+
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() =>
+            handleReviewStatus(selectedAlert.id, "CONFIRMED_FRAUD")
+          }
+          disabled={updating}
+        >
+          Confirm Fraud
+        </Button>
+
+        <Button
+          variant="outlined"
+          color="success"
+          onClick={() =>
+            handleReviewStatus(selectedAlert.id, "FALSE_POSITIVE")
+          }
+          disabled={updating}
+        >
+          False Positive
+        </Button>
+      </>
+    )}
+  </DialogActions>
+</Dialog>         
 
           <Snackbar
             open={Boolean(successMessage)}

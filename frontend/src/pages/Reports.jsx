@@ -21,12 +21,14 @@ import {
   ListItemText,
   Snackbar,
   Stack,
+  TablePagination,
   Toolbar,
   Typography,
 } from "@mui/material";
 import {
   Assessment,
   DashboardCustomize,
+  History,
   Download,
   NotificationsActive,
   ReceiptLong,
@@ -78,11 +80,18 @@ const sidebarItems = [
     icon: <Assessment />,
   },
   {
+  label: "Audit Logs",
+  path: "/audit-logs",
+  icon: <History />,
+},
+  {
     label: "Settings",
     path: "/settings",
     icon: <Settings />,
   },
 ];
+
+
 
 function Sidebar() {
   const location = useLocation();
@@ -241,6 +250,8 @@ export default function Reports() {
   const [transactions, setTransactions] = useState([]);
   const [flaggedTransactions, setFlaggedTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -270,6 +281,15 @@ export default function Reports() {
   useEffect(() => {
     loadReports();
   }, []);
+
+  function handleChangePage(event, newPage) {
+    setPage(newPage);
+  }
+
+  function handleChangeRowsPerPage(event) {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  }
 
   const predictionChartData = [
     {
@@ -316,6 +336,11 @@ export default function Reports() {
 
       return acc;
     }, {})
+  );
+
+  const paginatedFlaggedTransactions = flaggedTransactions.slice(
+  page * rowsPerPage,
+  page * rowsPerPage + rowsPerPage
   );
 
   function exportReportCsv() {
@@ -669,7 +694,8 @@ export default function Reports() {
                   No flagged transactions found.
                 </Typography>
               ) : (
-                <Box sx={{ overflowX: "auto" }}>
+                <>
+                  <Box sx={{ overflowX: "auto" }}>
                   <table
                     style={{
                       width: "100%",
@@ -693,7 +719,7 @@ export default function Reports() {
                     </thead>
 
                     <tbody>
-                      {flaggedTransactions.map((transaction) => (
+                      {paginatedFlaggedTransactions.map((transaction) => (
                         <tr
                           key={transaction.id}
                           style={{ borderBottom: "1px solid #e2e8f0" }}
@@ -712,6 +738,14 @@ export default function Reports() {
 
                           <td style={{ padding: "12px" }}>
                             KES {Number(transaction.amount).toLocaleString()}
+                          </td>
+
+                          <td style={{ padding: "12px" }}>
+                            <Chip
+                              label={transaction.riskScore}
+                              size="small"
+                              color={Number(transaction.riskScore) >= 90 ? "error" : "warning"}
+                            />
                           </td>
 
                           <td style={{ padding: "12px" }}>
@@ -747,13 +781,24 @@ export default function Reports() {
                               size="small"
                               variant="outlined"
                             />
-                          </td>
+                          </td>                          
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </Box>
-              )}
+                    </Box>
+
+                        <TablePagination
+                          component="div"
+                          count={flaggedTransactions.length}
+                          page={page}
+                          onPageChange={handleChangePage}
+                          rowsPerPage={rowsPerPage}
+                          onRowsPerPageChange={handleChangeRowsPerPage}
+                          rowsPerPageOptions={[5, 10, 25]}
+                        />
+                      </>
+                      )}
             </CardContent>
           </Card>
 

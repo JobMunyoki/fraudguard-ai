@@ -11,6 +11,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Drawer,
   FormControl,
@@ -25,6 +29,7 @@ import {
   Select,
   Snackbar,
   Stack,
+  TablePagination,
   TextField,
   Toolbar,
   Typography,
@@ -32,11 +37,13 @@ import {
 import {
   Assessment,
   DashboardCustomize,
+  History,
   NotificationsActive,
   ReceiptLong,
   Refresh,
   Search,
   Settings,
+  Visibility,
 } from "@mui/icons-material";
 import api from "../api/axiosConfig";
 
@@ -63,6 +70,11 @@ const sidebarItems = [
     path: "/reports",
     icon: <Assessment />,
   },
+  {
+  label: "Audit Logs",
+  path: "/audit-logs",
+  icon: <History />,
+},
   {
     label: "Settings",
     path: "/settings",
@@ -187,6 +199,9 @@ export default function Transactions() {
   const [reviewFilter, setReviewFilter] = useState("ALL");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   async function loadTransactions() {
     try {
@@ -206,6 +221,10 @@ export default function Transactions() {
     loadTransactions();
   }, []);
 
+  useEffect(() => {
+  setPage(0);
+}, [searchTerm, predictionFilter, reviewFilter]);
+
   async function handleReviewStatus(transactionId, status) {
     try {
       setUpdating(true);
@@ -222,6 +241,27 @@ export default function Transactions() {
       setUpdating(false);
     }
   }
+
+function handleChangePage(event, newPage) {
+  setPage(newPage);
+}
+
+function handleChangeRowsPerPage(event) {
+  setRowsPerPage(parseInt(event.target.value, 10));
+  setPage(0);
+}  
+
+function handleOpenDetails(transaction) {
+  setSelectedTransaction(transaction);
+}
+
+function handleCloseDetails() {
+  setSelectedTransaction(null);
+}
+
+function formatCurrency(value) {
+  return `KES ${Number(value || 0).toLocaleString()}`;
+}
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
@@ -242,6 +282,13 @@ export default function Transactions() {
       return matchesSearch && matchesPrediction && matchesReview;
     });
   }, [transactions, searchTerm, predictionFilter, reviewFilter]);
+
+  const paginatedTransactions = useMemo(() => {
+  const startIndex = page * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+
+  return filteredTransactions.slice(startIndex, endIndex);
+}, [filteredTransactions, page, rowsPerPage]);
 
   if (loading) {
     return (
@@ -402,7 +449,9 @@ export default function Transactions() {
                   No matching transactions found.
                 </Typography>
               ) : (
-                <Box sx={{ overflowX: "auto" }}>
+                <>
+                  <Box sx={{ overflowX: "auto" }}>
+                    
                   <table
                     style={{
                       width: "100%",
@@ -429,7 +478,7 @@ export default function Transactions() {
                     </thead>
 
                     <tbody>
-                      {filteredTransactions.map((transaction) => (
+                      {paginatedTransactions.map((transaction) => (
                         <tr
                           key={transaction.id}
                           style={{ borderBottom: "1px solid #e2e8f0" }}
@@ -502,6 +551,14 @@ export default function Transactions() {
                               <Button
                                 size="small"
                                 variant="outlined"
+                                startIcon={<Visibility />}
+                                onClick={() => handleOpenDetails(transaction)}
+                              >
+                                Details
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
                                 disabled={updating}
                                 onClick={() =>
                                   handleReviewStatus(transaction.id, "UNDER_REVIEW")
@@ -552,9 +609,262 @@ export default function Transactions() {
                     </tbody>
                   </table>
                 </Box>
+
+                  
+                <TablePagination
+                  component="div"
+                  count={filteredTransactions.length}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+              </>
               )}
             </CardContent>
           </Card>
+
+<Dialog
+  open={Boolean(selectedTransaction)}
+  onClose={handleCloseDetails}
+  maxWidth="md"
+  fullWidth
+>
+  <DialogTitle>
+    <Typography variant="h6" fontWeight="bold">
+      Transaction Details
+    </Typography>
+
+    <Typography variant="body2" color="text.secondary">
+      Full fraud analysis and transaction information
+    </Typography>
+  </DialogTitle>
+
+  <DialogContent dividers>
+    {selectedTransaction && (
+      <Box>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Transaction Information
+                </Typography>
+
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Reference
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedTransaction.transactionReference}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Customer ID
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedTransaction.customerId}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Transaction Type
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedTransaction.transactionType}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Destination Account
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {selectedTransaction.destinationAccount || "N/A"}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  Balance Movement
+                </Typography>
+
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Amount
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {formatCurrency(selectedTransaction.amount)}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Old Balance
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {formatCurrency(selectedTransaction.oldBalance)}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      New Balance
+                    </Typography>
+                    <Typography fontWeight="bold">
+                      {formatCurrency(selectedTransaction.newBalance)}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Card variant="outlined" sx={{ borderRadius: 3 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" mb={2}>
+                  AI Fraud Prediction
+                </Typography>
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Risk Score
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedTransaction.riskScore}
+                        color={
+                          Number(selectedTransaction.riskScore) >= 70
+                            ? "error"
+                            : Number(selectedTransaction.riskScore) >= 40
+                            ? "warning"
+                            : "success"
+                        }
+                      />
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Prediction
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedTransaction.predictionLabel}
+                        color={getPredictionColor(
+                          selectedTransaction.predictionLabel
+                        )}
+                      />
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Confidence
+                    </Typography>
+                    <Typography fontWeight="bold" mt={1}>
+                      {selectedTransaction.confidence !== null &&
+                      selectedTransaction.confidence !== undefined
+                        ? `${Number(
+                            selectedTransaction.confidence * 100
+                          ).toFixed(1)}%`
+                        : "N/A"}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <Typography variant="caption" color="text.secondary">
+                      Review Status
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedTransaction.reviewStatus}
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Prediction Source
+                    </Typography>
+                    <Box mt={1}>
+                      <Chip
+                        label={selectedTransaction.predictionSource || "UNKNOWN"}
+                        color={
+                          selectedTransaction.predictionSource === "AI_SERVICE"
+                            ? "primary"
+                            : "default"
+                        }
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Model Used
+                    </Typography>
+                    <Typography fontWeight="bold" mt={1}>
+                      {selectedTransaction.modelUsed || "N/A"}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+    )}
+  </DialogContent>
+
+  <DialogActions>
+    <Button onClick={handleCloseDetails}>Close</Button>
+
+    {selectedTransaction && (
+      <>
+        <Button
+          variant="outlined"
+          onClick={() =>
+            handleReviewStatus(selectedTransaction.id, "UNDER_REVIEW")
+          }
+          disabled={updating}
+        >
+          Mark Under Review
+        </Button>
+
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() =>
+            handleReviewStatus(selectedTransaction.id, "CONFIRMED_FRAUD")
+          }
+          disabled={updating}
+        >
+          Confirm Fraud
+        </Button>
+      </>
+    )}
+  </DialogActions>
+</Dialog>
 
           <Snackbar
             open={Boolean(successMessage)}

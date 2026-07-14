@@ -4,6 +4,7 @@ import Transactions from "./pages/Transactions";
 import FraudAlerts from "./pages/FraudAlerts";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
+import AuditLogs from "./pages/AuditLogs";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/fraud-alerts" element={<FraudAlerts />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
       </Routes>
     </BrowserRouter>
   );
