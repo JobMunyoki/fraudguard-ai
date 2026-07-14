@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Papa from "papaparse";
 import { Link, useLocation } from "react-router-dom";
 import {
   Alert,
@@ -43,6 +44,7 @@ import {
   Refresh,
   Search,
   Settings,
+  UploadFile,
   Visibility,
 } from "@mui/icons-material";
 import api from "../api/axiosConfig";
@@ -202,6 +204,7 @@ export default function Transactions() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [uploadingCsv, setUploadingCsv] = useState(false);
 
   async function loadTransactions() {
     try {
@@ -261,6 +264,86 @@ function handleCloseDetails() {
 
 function formatCurrency(value) {
   return `KES ${Number(value || 0).toLocaleString()}`;
+}
+
+async function handleCsvUpload(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  setUploadingCsv(true);
+  setError("");
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: async (results) => {
+      try {
+        const rows = results.data;
+
+        if (!rows || rows.length === 0) {
+          setError("CSV file is empty.");
+          return;
+        }
+
+        let successCount = 0;
+        let failedCount = 0;
+
+        for (const row of rows) {
+          const payload = {
+            transactionReference: row.transactionReference?.trim(),
+            customerId: row.customerId?.trim(),
+            transactionType: row.transactionType?.trim(),
+            amount: Number(row.amount),
+            oldBalance: Number(row.oldBalance),
+            newBalance: Number(row.newBalance),
+            destinationAccount: row.destinationAccount?.trim(),
+          };
+
+          const isValid =
+            payload.transactionReference &&
+            payload.customerId &&
+            payload.transactionType &&
+            !Number.isNaN(payload.amount) &&
+            !Number.isNaN(payload.oldBalance) &&
+            !Number.isNaN(payload.newBalance);
+
+          if (!isValid) {
+            failedCount += 1;
+            continue;
+          }
+
+          try {
+            await api.post("/transactions", payload);
+            successCount += 1;
+          } catch (err) {
+            console.error("Failed row:", payload, err);
+            failedCount += 1;
+          }
+        }
+
+        await loadTransactions();
+
+        setSuccessMessage(
+          `CSV upload complete. ${successCount} transaction(s) saved, ${failedCount} failed.`
+        );
+      } catch (err) {
+        console.error(err);
+        setError("Failed to process CSV file.");
+      } finally {
+        setUploadingCsv(false);
+        event.target.value = "";
+      }
+    },
+    error: (err) => {
+      console.error(err);
+      setError("Failed to read CSV file.");
+      setUploadingCsv(false);
+      event.target.value = "";
+    },
+  });
 }
 
   const filteredTransactions = useMemo(() => {
@@ -420,6 +503,23 @@ function formatCurrency(value) {
                   </Button>
                 </Grid>
               </Grid>
+              <Stack direction="row" spacing={2} mt={2} justifyContent="flex-end">
+                <Button
+                  variant="contained"
+                  startIcon={<UploadFile />}
+                  component="label"
+                  disabled={uploadingCsv}
+                >
+                  {uploadingCsv ? "Uploading..." : "Upload CSV"}
+
+                  <input
+                    type="file"
+                    accept=".csv"
+                    hidden
+                    onChange={handleCsvUpload}
+                  />
+                </Button>
+              </Stack>
             </CardContent>
           </Card>
 
