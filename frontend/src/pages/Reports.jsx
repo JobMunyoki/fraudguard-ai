@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   Alert,
   AppBar,
@@ -31,6 +33,7 @@ import {
   History,
   Download,
   NotificationsActive,
+  PictureAsPdf,
   ReceiptLong,
   Refresh,
   Settings,
@@ -397,6 +400,112 @@ export default function Reports() {
     setSuccessMessage("CSV report exported successfully.");
   }
 
+  function exportReportPdf() {
+  const doc = new jsPDF();
+
+  const generatedAt = new Date().toLocaleString();
+
+  doc.setFontSize(18);
+  doc.text("FraudGuard AI Report", 14, 18);
+
+  doc.setFontSize(10);
+  doc.text("AI-Powered Banking Fraud Detection System", 14, 25);
+  doc.text(`Generated: ${generatedAt}`, 14, 31);
+
+  doc.setFontSize(13);
+  doc.text("Summary Statistics", 14, 43);
+
+  autoTable(doc, {
+    startY: 48,
+    head: [["Metric", "Value"]],
+    body: [
+      ["Total Transactions", stats?.totalTransactions ?? 0],
+      ["Normal Transactions", stats?.normalTransactions ?? 0],
+      ["Suspicious Transactions", stats?.suspiciousTransactions ?? 0],
+      ["Fraud Transactions", stats?.fraudTransactions ?? 0],
+      ["Pending Reviews", stats?.pendingReviews ?? 0],
+      ["Under Review Cases", stats?.underReviewCases ?? 0],
+      ["Confirmed Fraud Cases", stats?.confirmedFraudCases ?? 0],
+      [
+        "Total Flagged Amount",
+        `KES ${Number(stats?.totalFlaggedAmount ?? 0).toLocaleString()}`,
+      ],
+      ["Average Risk Score", Number(stats?.averageRiskScore ?? 0).toFixed(1)],
+      ["High Risk Percentage", `${Number(stats?.highRiskPercentage ?? 0).toFixed(1)}%`],
+    ],
+    styles: {
+      fontSize: 9,
+    },
+    headStyles: {
+      fillColor: [37, 99, 235],
+    },
+  });
+
+  const flaggedRows = flaggedTransactions.map((transaction) => [
+    transaction.transactionReference,
+    transaction.customerId,
+    transaction.transactionType,
+    `KES ${Number(transaction.amount || 0).toLocaleString()}`,
+    transaction.riskScore,
+    transaction.predictionLabel,
+    transaction.confidence !== null && transaction.confidence !== undefined
+      ? `${Number(transaction.confidence * 100).toFixed(1)}%`
+      : "N/A",
+    transaction.predictionSource || "UNKNOWN",
+    transaction.modelUsed || "N/A",
+    transaction.reviewStatus,
+  ]);
+
+  doc.setFontSize(13);
+  doc.text(
+    "Flagged Transactions",
+    14,
+    doc.lastAutoTable.finalY + 14
+  );
+
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 19,
+    head: [
+      [
+        "Reference",
+        "Customer",
+        "Type",
+        "Amount",
+        "Risk",
+        "Prediction",
+        "Confidence",
+        "Source",
+        "Model",
+        "Review",
+      ],
+    ],
+    body: flaggedRows,
+    styles: {
+      fontSize: 7,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [220, 38, 38],
+    },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 22 },
+      4: { cellWidth: 12 },
+      5: { cellWidth: 20 },
+      6: { cellWidth: 18 },
+      7: { cellWidth: 22 },
+      8: { cellWidth: 28 },
+      9: { cellWidth: 24 },
+    },
+  });
+
+  doc.save("fraudguard-ai-report.pdf");
+
+  setSuccessMessage("PDF report exported successfully.");
+}
+
   if (loading) {
     return (
       <Box
@@ -475,6 +584,14 @@ export default function Reports() {
                 onClick={loadReports}
               >
                 Refresh
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<PictureAsPdf />}
+                onClick={exportReportPdf}
+              >
+                Export PDF
               </Button>
 
               <Button
