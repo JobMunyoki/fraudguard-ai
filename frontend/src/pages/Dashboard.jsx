@@ -79,31 +79,37 @@ const sidebarItems = [
     label: "Dashboard",
     path: "/dashboard",
     icon: <DashboardCustomize />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
   },
   {
     label: "Transactions",
     path: "/transactions",
     icon: <ReceiptLong />,
+    roles: ["ADMIN", "FRAUD_ANALYST"],
   },
   {
     label: "Fraud Alerts",
     path: "/fraud-alerts",
     icon: <NotificationsActive />,
+    roles: ["ADMIN", "FRAUD_ANALYST"],
   },
   {
     label: "Reports",
     path: "/reports",
     icon: <Assessment />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
   },
   {
-  label: "Audit Logs",
-  path: "/audit-logs",
-  icon: <History />,
-},
+    label: "Audit Logs",
+    path: "/audit-logs",
+    icon: <History />,
+    roles: ["ADMIN"],
+  },
   {
     label: "Settings",
     path: "/settings",
     icon: <Settings />,
+    roles: ["ADMIN"],
   },
 ];
 
@@ -184,7 +190,11 @@ function Sidebar() {
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
 
       <List sx={{ px: 2, py: 2 }}>
-        {sidebarItems.map((item) => {
+        {sidebarItems
+  .filter((item) =>
+    item.roles.includes(localStorage.getItem("fraudguard_role"))
+  )
+  .map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
@@ -259,37 +269,45 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [flaggedTransactions, setFlaggedTransactions] = useState([]);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(initialForm);  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  const role = localStorage.getItem("fraudguard_role");
+  const canManageTransactions = role === "ADMIN" || role === "FRAUD_ANALYST";
+
   async function loadDashboardData() {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const [statsResponse, transactionsResponse, flaggedResponse] =
-        await Promise.all([
-          api.get("/dashboard/stats"),
-          api.get("/transactions"),
-          api.get("/transactions/flagged"),
-        ]);
+    const statsResponse = await api.get("/dashboard/stats");
+    setStats(statsResponse.data);
 
-      setStats(statsResponse.data);
+    if (canManageTransactions) {
+      const [transactionsResponse, flaggedResponse] = await Promise.all([
+        api.get("/transactions"),
+        api.get("/transactions/flagged"),
+      ]);
+
       setTransactions(transactionsResponse.data);
       setFlaggedTransactions(flaggedResponse.data);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError(
-        "Failed to load dashboard data. Make sure the backend is running on port 8080."
-      );
-    } finally {
-      setLoading(false);
+    } else {
+      setTransactions([]);
+      setFlaggedTransactions([]);
     }
-  }
 
+    setError("");
+  } catch (err) {
+    console.error(err);
+    setError(
+      "Failed to load dashboard data. Make sure the backend is running on port 8080."
+    );
+  } finally {
+    setLoading(false);
+  }
+}
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -457,9 +475,29 @@ export default function Dashboard() {
           </Box>
 
           <Stack direction="row" spacing={2} alignItems="center">
-            <Chip label="Admin" color="primary" variant="outlined" />
+            <Chip
+              label={localStorage.getItem("fraudguard_role") || "USER"}
+              color="primary"
+              variant="outlined"
+            />
 
-            <Avatar sx={{ bgcolor: "#2563eb" }}>J</Avatar>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => {
+                        localStorage.removeItem("fraudguard_token");
+                        localStorage.removeItem("fraudguard_fullName");
+                        localStorage.removeItem("fraudguard_email");
+                        localStorage.removeItem("fraudguard_role");
+                        window.location.href = "/login";
+                      }}
+                    >
+                      Logout
+                    </Button>
+
+            <Avatar sx={{ bgcolor: "#2563eb" }}>
+              {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
+            </Avatar>
           </Stack>
         </Toolbar>
       </AppBar>
@@ -481,8 +519,9 @@ export default function Dashboard() {
           </Alert>
         )}
 
-        <Card sx={{ mb: 4, borderRadius: 3 }}>
-          <CardContent>
+        {canManageTransactions && (
+          <Card sx={{ mb: 4, borderRadius: 3 }}>
+            <CardContent>
             <Box
               display="flex"
               justifyContent="space-between"
@@ -620,6 +659,7 @@ export default function Dashboard() {
             </Box>
           </CardContent>
         </Card>
+      )}  
 
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
@@ -835,7 +875,8 @@ export default function Dashboard() {
   </Box>
 </Box>
 
-        <Card sx={{ mt: 4, borderRadius: 3 }}>
+        {canManageTransactions && (
+          <Card sx={{ mt: 4, borderRadius: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight="bold" mb={2}>
               Recent Transactions
@@ -979,6 +1020,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+      )}
 
         <Snackbar
           open={Boolean(successMessage)}

@@ -66,31 +66,37 @@ const sidebarItems = [
     label: "Dashboard",
     path: "/dashboard",
     icon: <DashboardCustomize />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
   },
   {
     label: "Transactions",
     path: "/transactions",
     icon: <ReceiptLong />,
+    roles: ["ADMIN", "FRAUD_ANALYST"],
   },
   {
     label: "Fraud Alerts",
     path: "/fraud-alerts",
     icon: <NotificationsActive />,
+    roles: ["ADMIN", "FRAUD_ANALYST"],
   },
   {
     label: "Reports",
     path: "/reports",
     icon: <Assessment />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
   },
   {
-  label: "Audit Logs",
-  path: "/audit-logs",
-  icon: <History />,
-},
+    label: "Audit Logs",
+    path: "/audit-logs",
+    icon: <History />,
+    roles: ["ADMIN"],
+  },
   {
     label: "Settings",
     path: "/settings",
     icon: <Settings />,
+    roles: ["ADMIN"],
   },
 ];
 
@@ -127,7 +133,11 @@ function Sidebar() {
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
 
       <List sx={{ px: 2, py: 2 }}>
-        {sidebarItems.map((item) => {
+        {sidebarItems
+  .filter((item) =>
+    item.roles.includes(localStorage.getItem("fraudguard_role"))
+  )
+  .map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
@@ -552,8 +562,29 @@ export default function Reports() {
             </Box>
 
             <Stack direction="row" spacing={2} alignItems="center">
-              <Chip label="Admin" color="primary" variant="outlined" />
-              <Avatar sx={{ bgcolor: "#2563eb" }}>J</Avatar>
+              <Chip
+  label={localStorage.getItem("fraudguard_role") || "USER"}
+  color="primary"
+  variant="outlined"
+/>
+
+<Button
+  variant="outlined"
+  color="error"
+  onClick={() => {
+    localStorage.removeItem("fraudguard_token");
+    localStorage.removeItem("fraudguard_fullName");
+    localStorage.removeItem("fraudguard_email");
+    localStorage.removeItem("fraudguard_role");
+    window.location.href = "/login";
+  }}
+>
+  Logout
+</Button>
+
+<Avatar sx={{ bgcolor: "#2563eb" }}>
+  {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
+</Avatar>
             </Stack>
           </Toolbar>
         </AppBar>
