@@ -23,6 +23,10 @@ The system supports:
 - Prediction source tracking
 - Model-used tracking
 - Analyst settings page
+- Transaction detail modal
+- Fraud alert detail modal
+- Audit logs
+- Client-side pagination
 
 ---
 
@@ -214,6 +218,54 @@ Features include:
 
 ---
 
+---
+
+## 5. Transaction Detail Modal
+
+The Transaction Detail Modal allows analysts to inspect a transaction without leaving the Transactions page.
+
+The modal displays:
+
+- Transaction reference
+- Customer ID
+- Transaction type
+- Destination account
+- Transaction amount
+- Old balance
+- New balance
+- Risk score
+- Prediction label
+- AI confidence
+- Prediction source
+- Model used
+- Review status
+
+This improves usability by reducing table clutter while still allowing full transaction inspection.
+
+---
+
+## 6. Fraud Alert Detail Modal
+
+The Fraud Alert Detail Modal allows analysts to investigate suspicious and fraudulent transactions directly from the Fraud Alerts page.
+
+The modal displays:
+
+- Transaction information
+- Balance movement
+- Fraud investigation summary
+- Risk score
+- Prediction
+- Confidence
+- Review status
+- Prediction source
+- Model used
+
+The modal also supports analyst actions such as:
+
+- Mark under review
+- Confirm fraud
+- Mark false positive
+
 ## 5. Reports Page
 
 The Reports page provides fraud analytics and exportable reporting.
@@ -249,6 +301,20 @@ The exported CSV includes:
 - Review status
 
 ---
+
+## 7. Audit Logs Page
+
+The Audit Logs page records important actions performed in the system.
+
+Current audit events include:
+
+- Transaction review status updates
+- Fraud analyst review actions
+
+Example audit log:
+
+````text
+Transaction TXN-006 review status changed from PENDING to UNDER_REVIEW
 
 ## 6. Settings Page
 
@@ -331,7 +397,7 @@ fraudguard-ai/
 ├── README.md
 ├── .gitignore
 └── docker-compose.yml
-```
+````
 
 ---
 
