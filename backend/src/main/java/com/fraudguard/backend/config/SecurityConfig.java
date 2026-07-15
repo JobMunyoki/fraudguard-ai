@@ -57,6 +57,10 @@ public class SecurityConfig {
                                                 // Audit logs are admin-only
                                                 .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
 
+                                                .requestMatchers("/api/users/**").hasRole("ADMIN")
+
+                                                .requestMatchers("/api/profile/**").authenticated()
+
                                                 // Any other request requires login
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(

@@ -27,7 +27,9 @@ import {
   Assessment,
   DashboardCustomize,
   History,
+  ManageAccounts,
   NotificationsActive,
+  Person,
   ReceiptLong,
   Settings,
 } from "@mui/icons-material";
@@ -66,6 +68,18 @@ const sidebarItems = [
     icon: <History />,
     roles: ["ADMIN"],
   },
+  {
+  label: "User Management",
+  path: "/users",
+  icon: <ManageAccounts />,
+  roles: ["ADMIN"],
+},
+{
+  label: "Profile",
+  path: "/profile",
+  icon: <Person />,
+  roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
+},
   {
     label: "Settings",
     path: "/settings",
@@ -363,7 +377,7 @@ export default function AuditLogs() {
                       <thead>
                         <tr style={{ textAlign: "left", backgroundColor: "#f1f5f9" }}>
                           <th style={{ padding: "12px" }}>Action</th>
-                          <th style={{ padding: "12px" }}>Transaction</th>
+                          <th style={{ padding: "12px" }}>Reference</th>
                           <th style={{ padding: "12px" }}>Performed By</th>
                           <th style={{ padding: "12px" }}>Description</th>
                           <th style={{ padding: "12px" }}>Date/Time</th>

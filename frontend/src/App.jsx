@@ -6,6 +6,8 @@ import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import AuditLogs from "./pages/AuditLogs";
 import Login from "./pages/Login";
+import UserManagement from "./pages/UserManagement";
+import Profile from "./pages/Profile";
 
 function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem("fraudguard_token");
@@ -71,6 +73,24 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "FRAUD_ANALYST", "VIEWER"]}>
+              <Profile />
             </ProtectedRoute>
           }
         />

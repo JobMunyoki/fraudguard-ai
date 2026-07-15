@@ -4,6 +4,7 @@ import {
   Alert,
   AppBar,
   Avatar,
+  Badge,
   Box,
   Button,
   Card,
@@ -14,12 +15,14 @@ import {
   Divider,
   Drawer,
   Grid,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   MenuItem,
+  Popover,
   Snackbar,
   Stack,
   TextField,
@@ -40,8 +43,11 @@ import {
   Refresh,
   DashboardCustomize,
   History,
+  ManageAccounts,
   ReceiptLong,
   NotificationsActive,
+  NotificationsNone,
+  Person,
   Settings,
 } from "@mui/icons-material";
 
@@ -105,6 +111,18 @@ const sidebarItems = [
     icon: <History />,
     roles: ["ADMIN"],
   },
+  {
+  label: "User Management",
+  path: "/users",
+  icon: <ManageAccounts />,
+  roles: ["ADMIN"],
+},
+{
+  label: "Profile",
+  path: "/profile",
+  icon: <Person />,
+  roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
+},
   {
     label: "Settings",
     path: "/settings",
@@ -274,6 +292,7 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [alertAnchorEl, setAlertAnchorEl] = useState(null);
 
   const role = localStorage.getItem("fraudguard_role");
   const canManageTransactions = role === "ADMIN" || role === "FRAUD_ANALYST";
@@ -361,6 +380,20 @@ export default function Dashboard() {
         .length,
     },
   ];
+
+  const criticalAlerts = flaggedTransactions
+  .filter((transaction) => transaction.riskScore >= 70)
+  .slice(0, 5);
+
+const openAlertCenter = Boolean(alertAnchorEl);
+
+function handleOpenAlertCenter(event) {
+  setAlertAnchorEl(event.currentTarget);
+}
+
+function handleCloseAlertCenter() {
+  setAlertAnchorEl(null);
+}
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -475,6 +508,85 @@ export default function Dashboard() {
           </Box>
 
           <Stack direction="row" spacing={2} alignItems="center">
+          {canManageTransactions && (
+  <>
+    <IconButton color="primary" onClick={handleOpenAlertCenter}>
+      <Badge badgeContent={criticalAlerts.length} color="error">
+        <NotificationsNone />
+      </Badge>
+    </IconButton>
+
+    <Popover
+      open={openAlertCenter}
+      anchorEl={alertAnchorEl}
+      onClose={handleCloseAlertCenter}
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
+      transformOrigin={{
+        vertical: "top",
+        horizontal: "right",
+      }}
+    >
+      <Box sx={{ width: 360, p: 2 }}>
+        <Typography variant="h6" fontWeight="bold" mb={1}>
+          Alert Center
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Latest high-risk fraud alerts
+        </Typography>
+
+        {criticalAlerts.length === 0 ? (
+          <Typography color="text.secondary">
+            No critical alerts at the moment.
+          </Typography>
+        ) : (
+          <Stack spacing={1}>
+            {criticalAlerts.map((transaction) => (
+              <Card key={transaction.id} variant="outlined">
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography fontWeight="bold">
+                      {transaction.transactionReference}
+                    </Typography>
+
+                    <Chip
+                      label={transaction.predictionLabel}
+                      size="small"
+                      color={
+                        transaction.predictionLabel === "FRAUD"
+                          ? "error"
+                          : "warning"
+                      }
+                    />
+                  </Stack>
+
+                  <Typography variant="body2" mt={1}>
+                    Customer: {transaction.customerId}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    Amount: KES {Number(transaction.amount).toLocaleString()}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    Risk Score: {transaction.riskScore}
+                  </Typography>
+
+                  <Typography variant="caption" color="text.secondary">
+                    Review Status: {transaction.reviewStatus}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        )}
+      </Box>
+    </Popover>
+  </>
+)}
             <Chip
               label={localStorage.getItem("fraudguard_role") || "USER"}
               color="primary"

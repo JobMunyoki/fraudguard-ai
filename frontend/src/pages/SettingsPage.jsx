@@ -35,7 +35,9 @@ import {
   Assessment,
   DashboardCustomize,
   History,
+  ManageAccounts,
   NotificationsActive,
+  Person,
   ReceiptLong,
   Save,
   Security,
@@ -77,6 +79,18 @@ const sidebarItems = [
     icon: <History />,
     roles: ["ADMIN"],
   },
+  {
+  label: "User Management",
+  path: "/users",
+  icon: <ManageAccounts />,
+  roles: ["ADMIN"],
+},
+{
+  label: "Profile",
+  path: "/profile",
+  icon: <Person />,
+  roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
+},
   {
     label: "Settings",
     path: "/settings",
