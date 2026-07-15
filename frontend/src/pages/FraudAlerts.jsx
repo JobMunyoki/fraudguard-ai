@@ -301,6 +301,9 @@ export default function FraudAlerts() {
   const [recommendedAnalyst, setRecommendedAnalyst] = useState(null);
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
 
+  const [escalationReason, setEscalationReason] = useState("");
+  const [escalatingCase, setEscalatingCase] = useState(false);
+
   async function loadRecommendedAnalyst() {
   try {
     setLoadingRecommendation(true);
@@ -413,6 +416,7 @@ async function handleOpenDetails(alert) {
   setSelectedAlert(alert);
   setNoteText("");
   setSelectedAnalystEmail(alert.assignedAnalystEmail || "");
+  setEscalationReason("");
 
   await loadInvestigationNotes(alert.id);
 
@@ -427,6 +431,7 @@ function handleCloseDetails() {
   setInvestigationNotes([]);
   setNoteText("");
   setRecommendedAnalyst(null);
+  setEscalationReason("");
 }
 
 async function handleAddInvestigationNote() {
@@ -500,6 +505,44 @@ async function handleAssignCase() {
     setError("Failed to assign fraud case.");
   } finally {
     setAssigningCase(false);
+  }
+}
+
+async function handleEscalateCase() {
+  if (!selectedAlert) {
+    return;
+  }
+
+  if (!escalationReason.trim()) {
+    setError("Please enter an escalation reason.");
+    return;
+  }
+
+  try {
+    setEscalatingCase(true);
+
+    const response = await api.put(
+      `/transactions/${selectedAlert.id}/escalate`,
+      {
+        escalationReason: escalationReason,
+      }
+    );
+
+    setSelectedAlert(response.data);
+
+    setAlerts((previousAlerts) =>
+      previousAlerts.map((alert) =>
+        alert.id === response.data.id ? response.data : alert
+      )
+    );
+
+    setEscalationReason("");
+    setSuccessMessage("Fraud case escalated successfully.");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to escalate fraud case.");
+  } finally {
+    setEscalatingCase(false);
   }
 }
 
@@ -1195,6 +1238,7 @@ function formatDateTime(value) {
                       {selectedAlert.modelUsed || "N/A"}
                     </Typography>
                   </Grid>
+
                   <Grid item xs={12} md={6}>
                     <Typography variant="caption" color="text.secondary">
                       Assigned Analyst
@@ -1212,192 +1256,223 @@ function formatDateTime(value) {
                       Assigned At
                     </Typography>
 
-                  <Divider sx={{ my: 3 }} />
-
-<Typography variant="h6" fontWeight="bold" mb={2}>
-  SLA and Escalation Status
-</Typography>
-
-<Grid container spacing={2}>
-  <Grid item xs={12} md={4}>
-    <Typography variant="caption" color="text.secondary">
-      SLA Status
-    </Typography>
-
-    <Box mt={1}>
-      <Chip
-        label={getSlaStatus(selectedAlert).label}
-        color={getSlaStatus(selectedAlert).color}
-        variant="outlined"
-      />
-    </Box>
-  </Grid>
-
-  <Grid item xs={12} md={4}>
-    <Typography variant="caption" color="text.secondary">
-      SLA Due At
-    </Typography>
-
-    <Typography fontWeight="bold" mt={1}>
-      {formatDateTime(selectedAlert.slaDueAt)}
-    </Typography>
-  </Grid>
-
-  <Grid item xs={12} md={4}>
-    <Typography variant="caption" color="text.secondary">
-      Escalation
-    </Typography>
-
-    <Box mt={1}>
-      {selectedAlert.escalated ? (
-        <Chip label="ESCALATED" color="error" />
-      ) : (
-        <Chip label="NOT ESCALATED" variant="outlined" />
-      )}
-    </Box>
-  </Grid>
-
-  {selectedAlert.escalated && (
-    <>
-      <Grid item xs={12} md={6}>
-        <Typography variant="caption" color="text.secondary">
-          Escalated By
-        </Typography>
-
-        <Typography fontWeight="bold" mt={1}>
-          {selectedAlert.escalatedBy || "N/A"}
-        </Typography>
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <Typography variant="caption" color="text.secondary">
-          Escalated At
-        </Typography>
-
-        <Typography fontWeight="bold" mt={1}>
-          {formatDateTime(selectedAlert.escalatedAt)}
-        </Typography>
-      </Grid>
-
-      <Grid item xs={12}>
-        <Typography variant="caption" color="text.secondary">
-          Escalation Reason
-        </Typography>
-
-        <Alert severity="warning" sx={{ mt: 1 }}>
-          {selectedAlert.escalationReason || "No reason provided."}
-        </Alert>
-      </Grid>
-    </>
-  )}
-</Grid>
-
                     <Typography fontWeight="bold" mt={1}>
-                      {selectedAlert.assignedAt
-                        ? new Date(selectedAlert.assignedAt).toLocaleString()
-                        : "N/A"}
+                      {formatDateTime(selectedAlert.assignedAt)}
                     </Typography>
                   </Grid>
-                </Grid>
-        {canAssignCases && (
-  <>
-    <Divider sx={{ my: 3 }} />
+
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 3 }} />
+
+                    <Typography variant="h6" fontWeight="bold" mb={2}>
+                      SLA and Escalation Status
+                    </Typography>
+
+                    {canAssignCases && !selectedAlert.escalated && (
+  <Grid item xs={12}>
+    <Divider sx={{ my: 2 }} />
 
     <Typography variant="h6" fontWeight="bold" mb={2}>
-      Assign Fraud Case
+      Escalate This Case
     </Typography>
 
-    {canAssignCases && (
-  <Card variant="outlined" sx={{ borderRadius: 3, mb: 2 }}>
-    <CardContent>
-      <Typography variant="h6" fontWeight="bold" mb={1}>
-        Smart Assignment Recommendation
-      </Typography>
+    <TextField
+      label="Escalation reason"
+      multiline
+      minRows={3}
+      fullWidth
+      value={escalationReason}
+      onChange={(event) => setEscalationReason(event.target.value)}
+      placeholder="Example: High-risk case requires urgent senior fraud review."
+    />
 
-      {loadingRecommendation ? (
-        <Typography color="text.secondary">
-          Loading recommended analyst...
-        </Typography>
-      ) : recommendedAnalyst ? (
-        <Stack spacing={1.5}>
-          <Typography>
-            <strong>Recommended Analyst:</strong>{" "}
-            {recommendedAnalyst.fullName}
-          </Typography>
-
-          <Typography>
-            <strong>Email:</strong> {recommendedAnalyst.email}
-          </Typography>
-
-          <Typography>
-            <strong>Active Cases:</strong>{" "}
-            {recommendedAnalyst.activeCases}
-          </Typography>
-
-          <Typography>
-            <strong>Total Assigned:</strong>{" "}
-            {recommendedAnalyst.totalAssignedCases}
-          </Typography>
-
-          <Typography>
-            <strong>High Risk Cases:</strong>{" "}
-            {recommendedAnalyst.highRiskCases}
-          </Typography>
-
-          <Alert severity="info">
-            {recommendedAnalyst.recommendationReason}
-          </Alert>
-
-          <Box>
-            <Button
-              variant="contained"
-              onClick={() =>
-                setSelectedAnalystEmail(recommendedAnalyst.email)
-              }
-            >
-              Use Recommendation
-            </Button>
-          </Box>
-        </Stack>
-      ) : (
-        <Typography color="text.secondary">
-          No analyst recommendation available.
-        </Typography>
-      )}
-    </CardContent>
-  </Card>
+    <Button
+      variant="contained"
+      color="error"
+      sx={{ mt: 2 }}
+      onClick={handleEscalateCase}
+      disabled={escalatingCase}
+    >
+      {escalatingCase ? "Escalating..." : "Escalate Case"}
+    </Button>
+  </Grid>
 )}
 
-    <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-      <FormControl fullWidth>
-        <InputLabel>Fraud Analyst</InputLabel>
-        <Select
-          label="Fraud Analyst"
-          value={selectedAnalystEmail}
-          onChange={(event) => setSelectedAnalystEmail(event.target.value)}
-        >
-          {analysts.map((analyst) => (
-            <MenuItem key={analyst.id} value={analyst.email}>
-              {analyst.fullName} — {analyst.email}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="caption" color="text.secondary">
+                          SLA Status
+                        </Typography>
 
-      <Button
-        variant="contained"
-        onClick={handleAssignCase}
-        disabled={assigningCase}
-      >
-        {assigningCase ? "Assigning..." : "Assign Case"}
-      </Button>
-    </Stack>
-  </>
-)}
+                        <Box mt={1}>
+                          <Chip
+                            label={getSlaStatus(selectedAlert).label}
+                            color={getSlaStatus(selectedAlert).color}
+                            variant="outlined"
+                          />
+                        </Box>
+                      </Grid>
+
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="caption" color="text.secondary">
+                          SLA Due At
+                        </Typography>
+
+                        <Typography fontWeight="bold" mt={1}>
+                          {formatDateTime(selectedAlert.slaDueAt)}
+                        </Typography>
+                      </Grid>
+
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="caption" color="text.secondary">
+                          Escalation
+                        </Typography>
+
+                        <Box mt={1}>
+                          {selectedAlert.escalated ? (
+                            <Chip label="ESCALATED" color="error" />
+                          ) : (
+                            <Chip label="NOT ESCALATED" variant="outlined" />
+                          )}
+                        </Box>
+                      </Grid>
+
+                      {selectedAlert.escalated && (
+                        <>
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="caption" color="text.secondary">
+                              Escalated By
+                            </Typography>
+
+                            <Typography fontWeight="bold" mt={1}>
+                              {selectedAlert.escalatedBy || "N/A"}
+                            </Typography>
+                          </Grid>
+
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="caption" color="text.secondary">
+                              Escalated At
+                            </Typography>
+
+                            <Typography fontWeight="bold" mt={1}>
+                              {formatDateTime(selectedAlert.escalatedAt)}
+                            </Typography>
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <Typography variant="caption" color="text.secondary">
+                              Escalation Reason
+                            </Typography>
+
+                            <Alert severity="warning" sx={{ mt: 1 }}>
+                              {selectedAlert.escalationReason || "No reason provided."}
+                            </Alert>
+                          </Grid>
+                        </>
+                      )}
+                    </Grid>
+                  </Grid>
+                </Grid>
+
+                {canAssignCases && (
+                  <>
+                    <Divider sx={{ my: 3 }} />
+
+                    <Typography variant="h6" fontWeight="bold" mb={2}>
+                      Assign Fraud Case
+                    </Typography>
+
+                    <Card variant="outlined" sx={{ borderRadius: 3, mb: 2 }}>
+                      <CardContent>
+                        <Typography variant="h6" fontWeight="bold" mb={1}>
+                          Smart Assignment Recommendation
+                        </Typography>
+
+                        {loadingRecommendation ? (
+                          <Typography color="text.secondary">
+                            Loading recommended analyst...
+                          </Typography>
+                        ) : recommendedAnalyst ? (
+                          <Stack spacing={1.5}>
+                            <Typography>
+                              <strong>Recommended Analyst:</strong>{" "}
+                              {recommendedAnalyst.fullName}
+                            </Typography>
+
+                            <Typography>
+                              <strong>Email:</strong> {recommendedAnalyst.email}
+                            </Typography>
+
+                            <Typography>
+                              <strong>Active Cases:</strong>{" "}
+                              {recommendedAnalyst.activeCases}
+                            </Typography>
+
+                            <Typography>
+                              <strong>Total Assigned:</strong>{" "}
+                              {recommendedAnalyst.totalAssignedCases}
+                            </Typography>
+
+                            <Typography>
+                              <strong>High Risk Cases:</strong>{" "}
+                              {recommendedAnalyst.highRiskCases}
+                            </Typography>
+
+                            <Alert severity="info">
+                              {recommendedAnalyst.recommendationReason}
+                            </Alert>
+
+                            <Box>
+                              <Button
+                                variant="contained"
+                                onClick={() =>
+                                  setSelectedAnalystEmail(recommendedAnalyst.email)
+                                }
+                              >
+                                Use Recommendation
+                              </Button>
+                            </Box>
+                          </Stack>
+                        ) : (
+                          <Typography color="text.secondary">
+                            No analyst recommendation available.
+                          </Typography>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                      <FormControl fullWidth>
+                        <InputLabel>Fraud Analyst</InputLabel>
+                        <Select
+                          label="Fraud Analyst"
+                          value={selectedAnalystEmail}
+                          onChange={(event) =>
+                            setSelectedAnalystEmail(event.target.value)
+                          }
+                        >
+                          {analysts.map((analyst) => (
+                            <MenuItem key={analyst.id} value={analyst.email}>
+                              {analyst.fullName} — {analyst.email}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <Button
+                        variant="contained"
+                        onClick={handleAssignCase}
+                        disabled={assigningCase}
+                      >
+                        {assigningCase ? "Assigning..." : "Assign Case"}
+                      </Button>
+                    </Stack>
+                  </>
+                )}
               </CardContent>
             </Card>
           </Grid>
-                </Grid>
+        </Grid>
 
         <Divider sx={{ my: 3 }} />
 
@@ -1459,9 +1534,7 @@ function formatDateTime(value) {
       <>
         <Button
           variant="outlined"
-          onClick={() =>
-            handleReviewStatus(selectedAlert.id, "UNDER_REVIEW")
-          }
+          onClick={() => handleReviewStatus(selectedAlert.id, "UNDER_REVIEW")}
           disabled={updating}
         >
           Mark Under Review
@@ -1491,7 +1564,7 @@ function formatDateTime(value) {
       </>
     )}
   </DialogActions>
-</Dialog>         
+</Dialog>  
 
           <Snackbar
             open={Boolean(successMessage)}
