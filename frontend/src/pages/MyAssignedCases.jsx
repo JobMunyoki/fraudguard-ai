@@ -209,6 +209,55 @@ function formatCurrency(value) {
   return `KES ${Number(value || 0).toLocaleString()}`;
 }
 
+const CLOSED_REVIEW_STATUSES = [
+  "CONFIRMED_FRAUD",
+  "FALSE_POSITIVE",
+  "RESOLVED",
+];
+
+function isCaseClosed(reviewStatus) {
+  return CLOSED_REVIEW_STATUSES.includes(reviewStatus);
+}
+
+function getSlaStatus(caseItem) {
+  if (!caseItem.slaDueAt) {
+    return {
+      label: "NO SLA",
+      color: "default",
+    };
+  }
+
+  if (isCaseClosed(caseItem.reviewStatus)) {
+    return {
+      label: "COMPLETED",
+      color: "success",
+    };
+  }
+
+  const now = new Date();
+  const slaDueDate = new Date(caseItem.slaDueAt);
+
+  if (slaDueDate < now) {
+    return {
+      label: "OVERDUE",
+      color: "error",
+    };
+  }
+
+  return {
+    label: "ON TIME",
+    color: "primary",
+  };
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "N/A";
+  }
+
+  return new Date(value).toLocaleString();
+}
+
 export default function MyAssignedCases() {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -552,8 +601,10 @@ async function handleAddInvestigationNote() {
                           <th style={{ padding: "12px" }}>Risk</th>
                           <th style={{ padding: "12px" }}>Prediction</th>
                           <th style={{ padding: "12px" }}>Review</th>
+                          <th style={{ padding: "12px" }}>SLA</th>
+                          <th style={{ padding: "12px" }}>Escalation</th>
                           <th style={{ padding: "12px" }}>Assigned At</th>
-                          <th style={{ padding: "12px" }}>Actions</th>
+                         <th style={{ padding: "12px" }}>Actions</th>
                         </tr>
                       </thead>
 
@@ -581,6 +632,43 @@ async function handleAddInvestigationNote() {
                                 variant="outlined"
                               />
                             </td>
+
+                            <td style={{ padding: "12px" }}>
+  <Stack spacing={0.5}>
+    <Chip
+      label={getSlaStatus(item).label}
+      size="small"
+      color={getSlaStatus(item).color}
+      variant="outlined"
+    />
+
+    <Typography variant="caption" color="text.secondary">
+      Due: {formatDateTime(item.slaDueAt)}
+    </Typography>
+  </Stack>
+</td>
+
+<td style={{ padding: "12px" }}>
+  {item.escalated ? (
+    <Stack spacing={0.5}>
+      <Chip
+        label="ESCALATED"
+        size="small"
+        color="error"
+      />
+
+      <Typography variant="caption" color="text.secondary">
+        {formatDateTime(item.escalatedAt)}
+      </Typography>
+    </Stack>
+  ) : (
+    <Chip
+      label="NOT ESCALATED"
+      size="small"
+      variant="outlined"
+    />
+  )}
+</td>
 
                             <td style={{ padding: "12px" }}>
                               {item.assignedAt
@@ -765,6 +853,63 @@ async function handleAddInvestigationNote() {
               </Stack>
             </CardContent>
           </Card>
+
+          <Card variant="outlined" sx={{ borderRadius: 3 }}>
+  <CardContent>
+    <Typography variant="h6" fontWeight="bold" mb={2}>
+      SLA and Escalation Status
+    </Typography>
+
+    <Stack spacing={1.5}>
+      <Box>
+        <Typography component="span" fontWeight="bold">
+          SLA Status:{" "}
+        </Typography>
+
+        <Chip
+          label={getSlaStatus(selectedCase).label}
+          color={getSlaStatus(selectedCase).color}
+          size="small"
+          variant="outlined"
+        />
+      </Box>
+
+      <Typography>
+        <strong>SLA Due At:</strong> {formatDateTime(selectedCase.slaDueAt)}
+      </Typography>
+
+      <Box>
+        <Typography component="span" fontWeight="bold">
+          Escalation:{" "}
+        </Typography>
+
+        {selectedCase.escalated ? (
+          <Chip label="ESCALATED" color="error" size="small" />
+        ) : (
+          <Chip label="NOT ESCALATED" size="small" variant="outlined" />
+        )}
+      </Box>
+
+      {selectedCase.escalated && (
+        <>
+          <Typography>
+            <strong>Escalated By:</strong>{" "}
+            {selectedCase.escalatedBy || "N/A"}
+          </Typography>
+
+          <Typography>
+            <strong>Escalated At:</strong>{" "}
+            {formatDateTime(selectedCase.escalatedAt)}
+          </Typography>
+
+          <Alert severity="warning">
+            {selectedCase.escalationReason || "No escalation reason provided."}
+          </Alert>
+        </>
+      )}
+    </Stack>
+  </CardContent>
+</Card>
 
           <Card variant="outlined" sx={{ borderRadius: 3 }}>
             <CardContent>

@@ -56,6 +56,16 @@ public class BankTransaction {
 
     private LocalDateTime assignedAt;
 
+    private LocalDateTime slaDueAt;
+
+    private Boolean escalated = false;
+
+    private String escalationReason;
+
+    private LocalDateTime escalatedAt;
+
+    private String escalatedBy;
+
     public String getAssignedAnalystEmail() {
         return assignedAnalystEmail;
     }
@@ -202,5 +212,45 @@ public class BankTransaction {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getSlaDueAt() {
+        return slaDueAt;
+    }
+
+    public void setSlaDueAt(LocalDateTime slaDueAt) {
+        this.slaDueAt = slaDueAt;
+    }
+
+    public Boolean getEscalated() {
+        return escalated;
+    }
+
+    public void setEscalated(Boolean escalated) {
+        this.escalated = escalated;
+    }
+
+    public String getEscalationReason() {
+        return escalationReason;
+    }
+
+    public void setEscalationReason(String escalationReason) {
+        this.escalationReason = escalationReason;
+    }
+
+    public LocalDateTime getEscalatedAt() {
+        return escalatedAt;
+    }
+
+    public void setEscalatedAt(LocalDateTime escalatedAt) {
+        this.escalatedAt = escalatedAt;
+    }
+
+    public String getEscalatedBy() {
+        return escalatedBy;
+    }
+
+    public void setEscalatedBy(String escalatedBy) {
+        this.escalatedBy = escalatedBy;
     }
 }

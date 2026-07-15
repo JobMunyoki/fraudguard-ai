@@ -507,6 +507,55 @@ function formatCurrency(value) {
     return `KES ${Number(value || 0).toLocaleString()}`;
   }
 
+const CLOSED_REVIEW_STATUSES = [
+  "CONFIRMED_FRAUD",
+  "FALSE_POSITIVE",
+  "RESOLVED",
+];
+
+function isCaseClosed(reviewStatus) {
+  return CLOSED_REVIEW_STATUSES.includes(reviewStatus);
+}
+
+function getSlaStatus(caseItem) {
+  if (!caseItem.slaDueAt) {
+    return {
+      label: "NO SLA",
+      color: "default",
+    };
+  }
+
+  if (isCaseClosed(caseItem.reviewStatus)) {
+    return {
+      label: "COMPLETED",
+      color: "success",
+    };
+  }
+
+  const now = new Date();
+  const slaDueDate = new Date(caseItem.slaDueAt);
+
+  if (slaDueDate < now) {
+    return {
+      label: "OVERDUE",
+      color: "error",
+    };
+  }
+
+  return {
+    label: "ON TIME",
+    color: "primary",
+  };
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "N/A";
+  }
+
+  return new Date(value).toLocaleString();
+}
+
   const filteredAlerts = useMemo(() => {
     return alerts.filter((alert) => {
       const searchText = searchTerm.toLowerCase();
@@ -764,6 +813,8 @@ function formatCurrency(value) {
                         <th style={{ padding: "12px" }}>Source</th>
                         <th style={{ padding: "12px" }}>Model Used</th>
                         <th style={{ padding: "12px" }}>Review</th>
+                        <th style={{ padding: "12px" }}>SLA</th>
+                        <th style={{ padding: "12px" }}>Escalation</th>
                         <th style={{ padding: "12px" }}>Actions</th>
                       </tr>
                     </thead>
@@ -830,6 +881,43 @@ function formatCurrency(value) {
                                 variant="outlined"
                             />
                             </td>
+                          
+                          <td style={{ padding: "12px" }}>
+  <Stack spacing={0.5}>
+    <Chip
+      label={getSlaStatus(alert).label}
+      size="small"
+      color={getSlaStatus(alert).color}
+      variant="outlined"
+    />
+
+    <Typography variant="caption" color="text.secondary">
+      Due: {formatDateTime(alert.slaDueAt)}
+    </Typography>
+  </Stack>
+</td>
+
+<td style={{ padding: "12px" }}>
+  {alert.escalated ? (
+    <Stack spacing={0.5}>
+      <Chip
+        label="ESCALATED"
+        size="small"
+        color="error"
+      />
+
+      <Typography variant="caption" color="text.secondary">
+        {formatDateTime(alert.escalatedAt)}
+      </Typography>
+    </Stack>
+  ) : (
+    <Chip
+      label="NOT ESCALATED"
+      size="small"
+      variant="outlined"
+    />
+  )}
+</td>
 
                           <td style={{ padding: "12px" }}>
                             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -1123,6 +1211,86 @@ function formatCurrency(value) {
                     <Typography variant="caption" color="text.secondary">
                       Assigned At
                     </Typography>
+
+                  <Divider sx={{ my: 3 }} />
+
+<Typography variant="h6" fontWeight="bold" mb={2}>
+  SLA and Escalation Status
+</Typography>
+
+<Grid container spacing={2}>
+  <Grid item xs={12} md={4}>
+    <Typography variant="caption" color="text.secondary">
+      SLA Status
+    </Typography>
+
+    <Box mt={1}>
+      <Chip
+        label={getSlaStatus(selectedAlert).label}
+        color={getSlaStatus(selectedAlert).color}
+        variant="outlined"
+      />
+    </Box>
+  </Grid>
+
+  <Grid item xs={12} md={4}>
+    <Typography variant="caption" color="text.secondary">
+      SLA Due At
+    </Typography>
+
+    <Typography fontWeight="bold" mt={1}>
+      {formatDateTime(selectedAlert.slaDueAt)}
+    </Typography>
+  </Grid>
+
+  <Grid item xs={12} md={4}>
+    <Typography variant="caption" color="text.secondary">
+      Escalation
+    </Typography>
+
+    <Box mt={1}>
+      {selectedAlert.escalated ? (
+        <Chip label="ESCALATED" color="error" />
+      ) : (
+        <Chip label="NOT ESCALATED" variant="outlined" />
+      )}
+    </Box>
+  </Grid>
+
+  {selectedAlert.escalated && (
+    <>
+      <Grid item xs={12} md={6}>
+        <Typography variant="caption" color="text.secondary">
+          Escalated By
+        </Typography>
+
+        <Typography fontWeight="bold" mt={1}>
+          {selectedAlert.escalatedBy || "N/A"}
+        </Typography>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <Typography variant="caption" color="text.secondary">
+          Escalated At
+        </Typography>
+
+        <Typography fontWeight="bold" mt={1}>
+          {formatDateTime(selectedAlert.escalatedAt)}
+        </Typography>
+      </Grid>
+
+      <Grid item xs={12}>
+        <Typography variant="caption" color="text.secondary">
+          Escalation Reason
+        </Typography>
+
+        <Alert severity="warning" sx={{ mt: 1 }}>
+          {selectedAlert.escalationReason || "No reason provided."}
+        </Alert>
+      </Grid>
+    </>
+  )}
+</Grid>
 
                     <Typography fontWeight="bold" mt={1}>
                       {selectedAlert.assignedAt

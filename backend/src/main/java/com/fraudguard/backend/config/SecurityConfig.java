@@ -61,6 +61,10 @@ public class SecurityConfig {
 
                                                 .requestMatchers("/api/analyst-workload**").hasRole("ADMIN")
 
+                                                .requestMatchers(org.springframework.http.HttpMethod.PUT,
+                                                                "/api/transactions/*/escalate")
+                                                .hasRole("ADMIN")
+
                                                 .requestMatchers("/api/profile/**").authenticated()
 
                                                 // Any other request requires login

@@ -58,7 +58,11 @@ public class FraudCaseAssignmentService {
 
         transaction.setAssignedAnalystEmail(analyst.getEmail());
         transaction.setAssignedAnalystName(analyst.getFullName());
-        transaction.setAssignedAt(LocalDateTime.now());
+        LocalDateTime assignedTime = LocalDateTime.now();
+        transaction.setAssignedAt(assignedTime);
+
+        // SLA deadline: case should be handled within 24 hours after assignment
+        transaction.setSlaDueAt(assignedTime.plusHours(24));
 
         BankTransaction savedTransaction = bankTransactionRepository.save(transaction);
 
