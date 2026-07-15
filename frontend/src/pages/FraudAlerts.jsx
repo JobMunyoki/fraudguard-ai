@@ -273,6 +273,10 @@ export default function FraudAlerts() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [investigationNotes, setInvestigationNotes] = useState([]);
+  const [noteText, setNoteText] = useState("");
+  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
 
   async function loadAlerts() {
     try {
@@ -324,13 +328,67 @@ export default function FraudAlerts() {
     setPage(0);
     }
 
-    function handleOpenDetails(alert) {
-    setSelectedAlert(alert);
+   async function loadInvestigationNotes(transactionId) {
+  try {
+    setLoadingNotes(true);
+
+    const response = await api.get(`/transactions/${transactionId}/notes`);
+
+    setInvestigationNotes(response.data);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to load investigation notes.");
+  } finally {
+    setLoadingNotes(false);
+  }
+}
+
+async function handleOpenDetails(alert) {
+  setSelectedAlert(alert);
+  setNoteText("");
+  await loadInvestigationNotes(alert.id);
+}
+
+function handleCloseDetails() {
+  setSelectedAlert(null);
+  setInvestigationNotes([]);
+  setNoteText("");
+}
+
+async function handleAddInvestigationNote() {
+  if (!selectedAlert) {
+    return;
   }
 
-  function handleCloseDetails() {
-    setSelectedAlert(null);
+  if (!noteText.trim()) {
+    setError("Please enter an investigation note.");
+    return;
   }
+
+  try {
+    setSavingNote(true);
+
+    const response = await api.post(
+      `/transactions/${selectedAlert.id}/notes`,
+      {
+        note: noteText,
+      }
+    );
+
+    setInvestigationNotes((previousNotes) => [
+      response.data,
+      ...previousNotes,
+    ]);
+
+    setNoteText("");
+    setSuccessMessage("Investigation note added successfully.");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to add investigation note.");
+  } finally {
+    setSavingNote(false);
+  }
+}
 
   function formatCurrency(value) {
     return `KES ${Number(value || 0).toLocaleString()}`;
@@ -938,7 +996,57 @@ export default function FraudAlerts() {
               </CardContent>
             </Card>
           </Grid>
-        </Grid>
+                </Grid>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="h6" fontWeight="bold" mb={2}>
+          Investigation Notes
+        </Typography>
+
+        <Box mb={3}>
+          <TextField
+            label="Add investigation note"
+            multiline
+            minRows={3}
+            fullWidth
+            value={noteText}
+            onChange={(event) => setNoteText(event.target.value)}
+            placeholder="Example: Customer contacted. Transaction requires further verification."
+          />
+
+          <Button
+            variant="contained"
+            sx={{ mt: 2 }}
+            onClick={handleAddInvestigationNote}
+            disabled={savingNote}
+          >
+            {savingNote ? "Saving Note..." : "Add Note"}
+          </Button>
+        </Box>
+
+        {loadingNotes ? (
+          <Typography color="text.secondary">Loading notes...</Typography>
+        ) : investigationNotes.length === 0 ? (
+          <Typography color="text.secondary">
+            No investigation notes added yet.
+          </Typography>
+        ) : (
+          <Stack spacing={2}>
+            {investigationNotes.map((note) => (
+              <Card key={note.id} variant="outlined">
+                <CardContent>
+                  <Typography>{note.note}</Typography>
+
+                  <Typography variant="caption" color="text.secondary">
+                    Added by {note.createdBy} on{" "}
+                    {new Date(note.createdAt).toLocaleString()}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        )}
       </Box>
     )}
   </DialogContent>
