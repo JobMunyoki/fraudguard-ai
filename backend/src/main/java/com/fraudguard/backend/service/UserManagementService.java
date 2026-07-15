@@ -30,6 +30,13 @@ public class UserManagementService {
                 .toList();
     }
 
+    public List<AppUserResponse> getFraudAnalysts() {
+        return appUserRepository.findByRole(com.fraudguard.backend.entity.Role.FRAUD_ANALYST)
+                .stream()
+                .map(AppUserResponse::new)
+                .toList();
+    }
+
     public AppUserResponse updateUserRole(Long userId, UpdateUserRoleRequest request) {
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found."));

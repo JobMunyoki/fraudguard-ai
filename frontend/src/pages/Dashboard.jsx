@@ -39,6 +39,7 @@ import {
   TrendingUp,
   ReportProblem,
   Assessment,
+  AssignmentInd,
   Add,
   Refresh,
   DashboardCustomize,
@@ -99,6 +100,12 @@ const sidebarItems = [
     icon: <NotificationsActive />,
     roles: ["ADMIN", "FRAUD_ANALYST"],
   },
+  {
+  label: "My Cases",
+  path: "/my-cases",
+  icon: <AssignmentInd />,
+  roles: ["FRAUD_ANALYST"],
+},
   {
     label: "Reports",
     path: "/reports",

@@ -50,6 +50,36 @@ public class BankTransaction {
 
     private LocalDateTime createdAt;
 
+    private String assignedAnalystEmail;
+
+    private String assignedAnalystName;
+
+    private LocalDateTime assignedAt;
+
+    public String getAssignedAnalystEmail() {
+        return assignedAnalystEmail;
+    }
+
+    public void setAssignedAnalystEmail(String assignedAnalystEmail) {
+        this.assignedAnalystEmail = assignedAnalystEmail;
+    }
+
+    public String getAssignedAnalystName() {
+        return assignedAnalystName;
+    }
+
+    public void setAssignedAnalystName(String assignedAnalystName) {
+        this.assignedAnalystName = assignedAnalystName;
+    }
+
+    public LocalDateTime getAssignedAt() {
+        return assignedAt;
+    }
+
+    public void setAssignedAt(LocalDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
     public BankTransaction() {
     }
 
@@ -130,7 +160,6 @@ public class BankTransaction {
         this.riskScore = riskScore;
     }
 
-    
     public Double getConfidence() {
         return confidence;
     }

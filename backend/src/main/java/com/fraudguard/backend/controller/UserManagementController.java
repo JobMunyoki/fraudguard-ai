@@ -24,6 +24,11 @@ public class UserManagementController {
         return ResponseEntity.ok(userManagementService.getAllUsers());
     }
 
+    @GetMapping("/analysts")
+    public ResponseEntity<List<AppUserResponse>> getFraudAnalysts() {
+        return ResponseEntity.ok(userManagementService.getFraudAnalysts());
+    }
+
     @PutMapping("/{userId}/role")
     public ResponseEntity<AppUserResponse> updateUserRole(
             @PathVariable Long userId,

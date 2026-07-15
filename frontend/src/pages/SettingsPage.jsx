@@ -33,6 +33,7 @@ import {
 } from "@mui/material";
 import {
   Assessment,
+  AssignmentInd,
   DashboardCustomize,
   History,
   ManageAccounts,
@@ -67,6 +68,12 @@ const sidebarItems = [
     icon: <NotificationsActive />,
     roles: ["ADMIN", "FRAUD_ANALYST"],
   },
+  {
+  label: "My Cases",
+  path: "/my-cases",
+  icon: <AssignmentInd />,
+  roles: ["FRAUD_ANALYST"],
+},
   {
     label: "Reports",
     path: "/reports",

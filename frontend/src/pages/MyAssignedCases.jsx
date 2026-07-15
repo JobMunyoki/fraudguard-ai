@@ -1,0 +1,545 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Alert,
+  AppBar,
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Divider,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Snackbar,
+  Stack,
+  TablePagination,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import {
+  Assessment,
+  AssignmentInd,
+  DashboardCustomize,
+  History,
+  ManageAccounts,
+  NotificationsActive,
+  Person,
+  ReceiptLong,
+  Settings,
+} from "@mui/icons-material";
+import api from "../api/axiosConfig";
+
+const drawerWidth = 260;
+
+const sidebarItems = [
+  {
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: <DashboardCustomize />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
+  },
+  {
+    label: "Transactions",
+    path: "/transactions",
+    icon: <ReceiptLong />,
+    roles: ["ADMIN", "FRAUD_ANALYST"],
+  },
+  {
+    label: "Fraud Alerts",
+    path: "/fraud-alerts",
+    icon: <NotificationsActive />,
+    roles: ["ADMIN", "FRAUD_ANALYST"],
+  },
+  {
+    label: "My Cases",
+    path: "/my-cases",
+    icon: <AssignmentInd />,
+    roles: ["FRAUD_ANALYST"],
+  },
+  {
+    label: "Reports",
+    path: "/reports",
+    icon: <Assessment />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
+  },
+  {
+    label: "Audit Logs",
+    path: "/audit-logs",
+    icon: <History />,
+    roles: ["ADMIN"],
+  },
+  {
+    label: "User Management",
+    path: "/users",
+    icon: <ManageAccounts />,
+    roles: ["ADMIN"],
+  },
+  {
+    label: "Profile",
+    path: "/profile",
+    icon: <Person />,
+    roles: ["ADMIN", "FRAUD_ANALYST", "VIEWER"],
+  },
+  {
+    label: "Settings",
+    path: "/settings",
+    icon: <Settings />,
+    roles: ["ADMIN"],
+  },
+];
+
+function Sidebar() {
+  const location = useLocation();
+  const role = localStorage.getItem("fraudguard_role");
+
+  return (
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        "& .MuiDrawer-paper": {
+          width: drawerWidth,
+          boxSizing: "border-box",
+          borderRight: "1px solid #e2e8f0",
+          backgroundColor: "#0f172a",
+          color: "#ffffff",
+        },
+      }}
+    >
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h5" fontWeight="bold">
+          FraudGuard AI
+        </Typography>
+        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+          Banking Fraud Detection
+        </Typography>
+      </Box>
+
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+
+      <List sx={{ px: 2, py: 2 }}>
+        {sidebarItems
+          .filter((item) => item.roles.includes(role))
+          .map((item) => {
+            const isActive = location.pathname === item.path;
+
+            return (
+              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: isActive ? "#2563eb" : "transparent",
+                    color: isActive ? "#ffffff" : "#cbd5e1",
+                    textDecoration: "none",
+                    "&:hover": {
+                      backgroundColor: isActive ? "#2563eb" : "#1e293b",
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: isActive ? "#ffffff" : "#94a3b8",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+      </List>
+
+      <Box sx={{ flexGrow: 1 }} />
+
+      <Box sx={{ p: 2 }}>
+        <Card sx={{ backgroundColor: "#1e293b", color: "#ffffff", borderRadius: 3 }}>
+          <CardContent>
+            <Typography variant="body2" fontWeight="bold">
+              System Status
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+              Backend connected
+            </Typography>
+            <Box mt={1}>
+              <Chip
+                label="Online"
+                size="small"
+                sx={{
+                  backgroundColor: "#16a34a",
+                  color: "#ffffff",
+                  fontWeight: "bold",
+                }}
+              />
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+    </Drawer>
+  );
+}
+
+function getPredictionColor(label) {
+  if (label === "FRAUD") return "error";
+  if (label === "SUSPICIOUS") return "warning";
+  return "success";
+}
+
+function formatCurrency(value) {
+  return `KES ${Number(value || 0).toLocaleString()}`;
+}
+
+export default function MyAssignedCases() {
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  async function loadAssignedCases() {
+    try {
+      setLoading(true);
+
+      const response = await api.get("/transactions/assigned-to-me");
+
+      setCases(response.data);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load assigned cases.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleReviewStatus(transactionId, status) {
+    try {
+      setUpdating(true);
+
+      await api.put(`/transactions/${transactionId}/review-status?status=${status}`);
+
+      setSuccessMessage(`Case marked as ${status}`);
+      await loadAssignedCases();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update case status.");
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAssignedCases();
+  }, []);
+
+  function handleChangePage(event, newPage) {
+    setPage(newPage);
+  }
+
+  function handleChangeRowsPerPage(event) {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  }
+
+  const paginatedCases = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+
+    return cases.slice(startIndex, endIndex);
+  }, [cases, page, rowsPerPage]);
+
+  const pendingCases = cases.filter((item) => item.reviewStatus === "PENDING").length;
+  const underReviewCases = cases.filter((item) => item.reviewStatus === "UNDER_REVIEW").length;
+  const confirmedFraudCases = cases.filter(
+    (item) => item.reviewStatus === "CONFIRMED_FRAUD"
+  ).length;
+
+  if (loading) {
+    return (
+      <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
+      <Sidebar />
+
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: `calc(100% - ${drawerWidth}px)`,
+          minHeight: "100vh",
+        }}
+      >
+        <AppBar
+          position="sticky"
+          elevation={0}
+          sx={{
+            backgroundColor: "#ffffff",
+            color: "#0f172a",
+            borderBottom: "1px solid #e2e8f0",
+          }}
+        >
+          <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                My Assigned Cases
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Fraud cases assigned to you for investigation
+              </Typography>
+            </Box>
+
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Chip
+                label={localStorage.getItem("fraudguard_role") || "USER"}
+                color="primary"
+                variant="outlined"
+              />
+
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  localStorage.removeItem("fraudguard_token");
+                  localStorage.removeItem("fraudguard_fullName");
+                  localStorage.removeItem("fraudguard_email");
+                  localStorage.removeItem("fraudguard_role");
+                  window.location.href = "/login";
+                }}
+              >
+                Logout
+              </Button>
+
+              <Avatar sx={{ bgcolor: "#2563eb" }}>
+                {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
+              </Avatar>
+            </Stack>
+          </Toolbar>
+        </AppBar>
+
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Box mb={4}>
+            <Typography variant="h4" fontWeight="bold">
+              My Investigation Cases
+            </Typography>
+
+            <Typography color="text.secondary" mt={1}>
+              Review and update suspicious or fraudulent transactions assigned to you.
+            </Typography>
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
+              {error}
+            </Alert>
+          )}
+
+          <Stack direction={{ xs: "column", md: "row" }} spacing={3} mb={3}>
+            <Card sx={{ flex: 1, borderRadius: 3 }}>
+              <CardContent>
+                <Typography color="text.secondary">Total Assigned</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  {cases.length}
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ flex: 1, borderRadius: 3 }}>
+              <CardContent>
+                <Typography color="text.secondary">Pending</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  {pendingCases}
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ flex: 1, borderRadius: 3 }}>
+              <CardContent>
+                <Typography color="text.secondary">Under Review</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  {underReviewCases}
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ flex: 1, borderRadius: 3 }}>
+              <CardContent>
+                <Typography color="text.secondary">Confirmed Fraud</Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  {confirmedFraudCases}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Stack>
+
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Assigned Fraud Cases
+                  </Typography>
+
+                  <Typography color="text.secondary">
+                    Showing {cases.length} assigned case(s)
+                  </Typography>
+                </Box>
+
+                <Button variant="outlined" onClick={loadAssignedCases}>
+                  Refresh
+                </Button>
+              </Box>
+
+              {cases.length === 0 ? (
+                <Typography color="text.secondary">
+                  No fraud cases have been assigned to you yet.
+                </Typography>
+              ) : (
+                <>
+                  <Box sx={{ overflowX: "auto" }}>
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        fontSize: "14px",
+                      }}
+                    >
+                      <thead>
+                        <tr style={{ textAlign: "left", backgroundColor: "#f1f5f9" }}>
+                          <th style={{ padding: "12px" }}>Reference</th>
+                          <th style={{ padding: "12px" }}>Customer</th>
+                          <th style={{ padding: "12px" }}>Type</th>
+                          <th style={{ padding: "12px" }}>Amount</th>
+                          <th style={{ padding: "12px" }}>Risk</th>
+                          <th style={{ padding: "12px" }}>Prediction</th>
+                          <th style={{ padding: "12px" }}>Review</th>
+                          <th style={{ padding: "12px" }}>Assigned At</th>
+                          <th style={{ padding: "12px" }}>Actions</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {paginatedCases.map((item) => (
+                          <tr key={item.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                            <td style={{ padding: "12px" }}>{item.transactionReference}</td>
+                            <td style={{ padding: "12px" }}>{item.customerId}</td>
+                            <td style={{ padding: "12px" }}>{item.transactionType}</td>
+                            <td style={{ padding: "12px" }}>{formatCurrency(item.amount)}</td>
+                            <td style={{ padding: "12px" }}>{item.riskScore}</td>
+
+                            <td style={{ padding: "12px" }}>
+                              <Chip
+                                label={item.predictionLabel}
+                                size="small"
+                                color={getPredictionColor(item.predictionLabel)}
+                              />
+                            </td>
+
+                            <td style={{ padding: "12px" }}>
+                              <Chip
+                                label={item.reviewStatus}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </td>
+
+                            <td style={{ padding: "12px" }}>
+                              {item.assignedAt
+                                ? new Date(item.assignedAt).toLocaleString()
+                                : "N/A"}
+                            </td>
+
+                            <td style={{ padding: "12px" }}>
+                              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  disabled={updating}
+                                  onClick={() =>
+                                    handleReviewStatus(item.id, "UNDER_REVIEW")
+                                  }
+                                >
+                                  Review
+                                </Button>
+
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="error"
+                                  disabled={updating}
+                                  onClick={() =>
+                                    handleReviewStatus(item.id, "CONFIRMED_FRAUD")
+                                  }
+                                >
+                                  Confirm Fraud
+                                </Button>
+
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="success"
+                                  disabled={updating}
+                                  onClick={() =>
+                                    handleReviewStatus(item.id, "FALSE_POSITIVE")
+                                  }
+                                >
+                                  False Positive
+                                </Button>
+                              </Stack>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </Box>
+
+                  <TablePagination
+                    component="div"
+                    count={cases.length}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                    rowsPerPageOptions={[5, 10, 25]}
+                  />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Snackbar
+            open={Boolean(successMessage)}
+            autoHideDuration={4000}
+            onClose={() => setSuccessMessage("")}
+          >
+            <Alert
+              severity="success"
+              variant="filled"
+              onClose={() => setSuccessMessage("")}
+            >
+              {successMessage}
+            </Alert>
+          </Snackbar>
+        </Container>
+      </Box>
+    </Box>
+  );
+}

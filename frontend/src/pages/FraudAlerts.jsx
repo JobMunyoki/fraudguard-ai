@@ -36,6 +36,7 @@ import {
 } from "@mui/material";
 import {
   Assessment,
+  AssignmentInd,
   DashboardCustomize,
   History,
   ManageAccounts,
@@ -73,6 +74,12 @@ const sidebarItems = [
     icon: <NotificationsActive />,
     roles: ["ADMIN", "FRAUD_ANALYST"],
   },
+  {
+  label: "My Cases",
+  path: "/my-cases",
+  icon: <AssignmentInd />,
+  roles: ["FRAUD_ANALYST"],
+},
   {
     label: "Reports",
     path: "/reports",
@@ -278,6 +285,13 @@ export default function FraudAlerts() {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
 
+  const [analysts, setAnalysts] = useState([]);
+  const [selectedAnalystEmail, setSelectedAnalystEmail] = useState("");
+  const [assigningCase, setAssigningCase] = useState(false);
+
+  const role = localStorage.getItem("fraudguard_role");
+  const canAssignCases = role === "ADMIN";
+
   async function loadAlerts() {
     try {
       setLoading(true);
@@ -294,9 +308,24 @@ export default function FraudAlerts() {
     }
   }
 
-  useEffect(() => {
-    loadAlerts();
-  }, []);
+  async function loadAnalysts() {
+  if (!canAssignCases) {
+    return;
+  }
+
+  try {
+    const response = await api.get("/users/analysts");
+    setAnalysts(response.data);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to load fraud analysts.");
+  }
+}
+
+useEffect(() => {
+  loadAlerts();
+  loadAnalysts();
+}, []);
 
   useEffect(() => {
     setPage(0);
@@ -346,6 +375,7 @@ export default function FraudAlerts() {
 async function handleOpenDetails(alert) {
   setSelectedAlert(alert);
   setNoteText("");
+  setSelectedAnalystEmail(alert.assignedAnalystEmail || "");
   await loadInvestigationNotes(alert.id);
 }
 
@@ -359,6 +389,43 @@ async function handleAddInvestigationNote() {
   if (!selectedAlert) {
     return;
   }
+
+  async function handleAssignCase() {
+  if (!selectedAlert) {
+    return;
+  }
+
+  if (!selectedAnalystEmail) {
+    setError("Please select a fraud analyst.");
+    return;
+  }
+
+  try {
+    setAssigningCase(true);
+
+    const response = await api.put(
+      `/transactions/${selectedAlert.id}/assign-analyst`,
+      {
+        analystEmail: selectedAnalystEmail,
+      }
+    );
+
+    setSelectedAlert(response.data);
+
+    setAlerts((previousAlerts) =>
+      previousAlerts.map((alert) =>
+        alert.id === response.data.id ? response.data : alert
+      )
+    );
+
+    setSuccessMessage("Fraud case assigned successfully.");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to assign fraud case.");
+  } finally {
+    setAssigningCase(false);
+  }
+}
 
   if (!noteText.trim()) {
     setError("Please enter an investigation note.");
@@ -387,6 +454,43 @@ async function handleAddInvestigationNote() {
     setError("Failed to add investigation note.");
   } finally {
     setSavingNote(false);
+  }
+}
+
+async function handleAssignCase() {
+  if (!selectedAlert) {
+    return;
+  }
+
+  if (!selectedAnalystEmail) {
+    setError("Please select a fraud analyst.");
+    return;
+  }
+
+  try {
+    setAssigningCase(true);
+
+    const response = await api.put(
+      `/transactions/${selectedAlert.id}/assign-analyst`,
+      {
+        analystEmail: selectedAnalystEmail,
+      }
+    );
+
+    setSelectedAlert(response.data);
+
+    setAlerts((previousAlerts) =>
+      previousAlerts.map((alert) =>
+        alert.id === response.data.id ? response.data : alert
+      )
+    );
+
+    setSuccessMessage("Fraud case assigned successfully.");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to assign fraud case.");
+  } finally {
+    setAssigningCase(false);
   }
 }
 
@@ -992,7 +1096,64 @@ async function handleAddInvestigationNote() {
                       {selectedAlert.modelUsed || "N/A"}
                     </Typography>
                   </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Assigned Analyst
+                    </Typography>
+
+                    <Typography fontWeight="bold" mt={1}>
+                      {selectedAlert.assignedAnalystName
+                        ? `${selectedAlert.assignedAnalystName} (${selectedAlert.assignedAnalystEmail})`
+                        : "Unassigned"}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Assigned At
+                    </Typography>
+
+                    <Typography fontWeight="bold" mt={1}>
+                      {selectedAlert.assignedAt
+                        ? new Date(selectedAlert.assignedAt).toLocaleString()
+                        : "N/A"}
+                    </Typography>
+                  </Grid>
                 </Grid>
+        {canAssignCases && (
+  <>
+    <Divider sx={{ my: 3 }} />
+
+    <Typography variant="h6" fontWeight="bold" mb={2}>
+      Assign Fraud Case
+    </Typography>
+
+    <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+      <FormControl fullWidth>
+        <InputLabel>Fraud Analyst</InputLabel>
+        <Select
+          label="Fraud Analyst"
+          value={selectedAnalystEmail}
+          onChange={(event) => setSelectedAnalystEmail(event.target.value)}
+        >
+          {analysts.map((analyst) => (
+            <MenuItem key={analyst.id} value={analyst.email}>
+              {analyst.fullName} — {analyst.email}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <Button
+        variant="contained"
+        onClick={handleAssignCase}
+        disabled={assigningCase}
+      >
+        {assigningCase ? "Assigning..." : "Assign Case"}
+      </Button>
+    </Stack>
+  </>
+)}
               </CardContent>
             </Card>
           </Grid>
