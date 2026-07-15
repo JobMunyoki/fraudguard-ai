@@ -17,11 +17,15 @@ import {
   DialogTitle,
   Divider,
   Drawer,
+  FormControl,
+  InputLabel,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  MenuItem,
+  Select,
   Snackbar,
   Stack,
   TablePagination,
@@ -214,6 +218,7 @@ export default function MyAssignedCases() {
   const [successMessage, setSuccessMessage] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedCase, setSelectedCase] = useState(null);
   const [investigationNotes, setInvestigationNotes] = useState([]);
   const [noteText, setNoteText] = useState("");
@@ -253,8 +258,27 @@ export default function MyAssignedCases() {
   }
 
   useEffect(() => {
-    loadAssignedCases();
-  }, []);
+  loadAssignedCases();
+}, []);
+
+  useEffect(() => {
+    setPage(0);
+  }, [statusFilter]);
+
+  const filteredCases = useMemo(() => {
+  if (statusFilter === "ALL") {
+    return cases;
+  }
+
+  return cases.filter((item) => item.reviewStatus === statusFilter);
+}, [cases, statusFilter]);
+
+const paginatedCases = useMemo(() => {
+  const startIndex = page * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+
+  return filteredCases.slice(startIndex, endIndex);
+}, [filteredCases, page, rowsPerPage]);
 
   function handleChangePage(event, newPage) {
     setPage(newPage);
@@ -264,13 +288,6 @@ export default function MyAssignedCases() {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   }
-
-  const paginatedCases = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-
-    return cases.slice(startIndex, endIndex);
-  }, [cases, page, rowsPerPage]);
 
   const pendingCases = cases.filter((item) => item.reviewStatus === "PENDING").length;
   const underReviewCases = cases.filter((item) => item.reviewStatus === "UNDER_REVIEW").length;
@@ -464,27 +481,52 @@ async function handleAddInvestigationNote() {
 
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Box>
-                  <Typography variant="h6" fontWeight="bold">
-                    Assigned Fraud Cases
-                  </Typography>
+              <Box
+  display="flex"
+  justifyContent="space-between"
+  alignItems="center"
+  mb={2}
+  gap={2}
+  flexWrap="wrap"
+>
+  <Box>
+    <Typography variant="h6" fontWeight="bold">
+      Assigned Fraud Cases
+    </Typography>
 
-                  <Typography color="text.secondary">
-                    Showing {cases.length} assigned case(s)
-                  </Typography>
-                </Box>
+    <Typography color="text.secondary">
+      Showing {filteredCases.length} of {cases.length} assigned case(s)
+    </Typography>
+  </Box>
 
-                <Button variant="outlined" onClick={loadAssignedCases}>
-                  Refresh
-                </Button>
-              </Box>
+  <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+    <FormControl size="small" sx={{ minWidth: 220 }}>
+      <InputLabel>Case Status</InputLabel>
+      <Select
+        label="Case Status"
+        value={statusFilter}
+        onChange={(event) => setStatusFilter(event.target.value)}
+      >
+        <MenuItem value="ALL">All Cases</MenuItem>
+        <MenuItem value="PENDING">Pending</MenuItem>
+        <MenuItem value="UNDER_REVIEW">Under Review</MenuItem>
+        <MenuItem value="CONFIRMED_FRAUD">Confirmed Fraud</MenuItem>
+        <MenuItem value="FALSE_POSITIVE">False Positive</MenuItem>
+        <MenuItem value="RESOLVED">Resolved</MenuItem>
+      </Select>
+    </FormControl>
 
-              {cases.length === 0 ? (
+    <Button variant="outlined" onClick={loadAssignedCases}>
+      Refresh
+    </Button>
+  </Stack>
+</Box>
+
+              {filteredCases.length === 0 ? (
                 <Typography color="text.secondary">
-                  No fraud cases have been assigned to you yet.
+                    No assigned cases match the selected status.
                 </Typography>
-              ) : (
+                ) : (
                 <>
                   <Box sx={{ overflowX: "auto" }}>
                     <table
@@ -593,7 +635,7 @@ async function handleAddInvestigationNote() {
 
                   <TablePagination
                     component="div"
-                    count={cases.length}
+                    count={filteredCases.length}
                     page={page}
                     onPageChange={handleChangePage}
                     rowsPerPage={rowsPerPage}
