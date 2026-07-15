@@ -59,7 +59,7 @@ public class SecurityConfig {
 
                                                 .requestMatchers("/api/users/**").hasRole("ADMIN")
 
-                                                .requestMatchers("/api/analyst-workload").hasRole("ADMIN")
+                                                .requestMatchers("/api/analyst-workload**").hasRole("ADMIN")
 
                                                 .requestMatchers("/api/profile/**").authenticated()
 

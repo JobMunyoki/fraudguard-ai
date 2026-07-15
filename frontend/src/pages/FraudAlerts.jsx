@@ -298,21 +298,52 @@ export default function FraudAlerts() {
   const role = localStorage.getItem("fraudguard_role");
   const canAssignCases = role === "ADMIN";
 
-  async function loadAlerts() {
-    try {
-      setLoading(true);
+  const [recommendedAnalyst, setRecommendedAnalyst] = useState(null);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
 
-      const response = await api.get("/transactions/flagged");
+  async function loadRecommendedAnalyst() {
+  try {
+    setLoadingRecommendation(true);
 
-      setAlerts(response.data);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load fraud alerts. Make sure the backend is running.");
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.get("/analyst-workload/recommendation");
+
+    setRecommendedAnalyst(response.data);
+  } catch (err) {
+    console.error(err);
+    setRecommendedAnalyst(null);
+  } finally {
+    setLoadingRecommendation(false);
   }
+}
+
+  async function loadAlerts() {
+  try {
+    setLoading(true);
+    setError("");
+
+    const response = await api.get("/transactions/flagged", {
+      timeout: 10000,
+    });
+
+    setAlerts(Array.isArray(response.data) ? response.data : []);
+  } catch (err) {
+    console.error("Fraud alerts error:", err);
+
+    if (err.response?.status === 401) {
+      setError("You are not logged in. Please login again.");
+    } else if (err.response?.status === 403) {
+      setError("Access denied. Fraud Alerts is for ADMIN and FRAUD_ANALYST only.");
+    } else if (err.code === "ECONNABORTED") {
+      setError("Request timed out. Backend did not respond to /transactions/flagged.");
+    } else {
+      setError("Failed to load fraud alerts. Check backend and token.");
+    }
+
+    setAlerts([]);
+  } finally {
+    setLoading(false);
+  }
+}
 
   async function loadAnalysts() {
   if (!canAssignCases) {
@@ -382,56 +413,26 @@ async function handleOpenDetails(alert) {
   setSelectedAlert(alert);
   setNoteText("");
   setSelectedAnalystEmail(alert.assignedAnalystEmail || "");
+
   await loadInvestigationNotes(alert.id);
+
+  if (canAssignCases) {
+    await loadAnalysts();
+    await loadRecommendedAnalyst();
+  }
 }
 
 function handleCloseDetails() {
   setSelectedAlert(null);
   setInvestigationNotes([]);
   setNoteText("");
+  setRecommendedAnalyst(null);
 }
 
 async function handleAddInvestigationNote() {
   if (!selectedAlert) {
     return;
   }
-
-  async function handleAssignCase() {
-  if (!selectedAlert) {
-    return;
-  }
-
-  if (!selectedAnalystEmail) {
-    setError("Please select a fraud analyst.");
-    return;
-  }
-
-  try {
-    setAssigningCase(true);
-
-    const response = await api.put(
-      `/transactions/${selectedAlert.id}/assign-analyst`,
-      {
-        analystEmail: selectedAnalystEmail,
-      }
-    );
-
-    setSelectedAlert(response.data);
-
-    setAlerts((previousAlerts) =>
-      previousAlerts.map((alert) =>
-        alert.id === response.data.id ? response.data : alert
-      )
-    );
-
-    setSuccessMessage("Fraud case assigned successfully.");
-  } catch (err) {
-    console.error(err);
-    setError("Failed to assign fraud case.");
-  } finally {
-    setAssigningCase(false);
-  }
-}
 
   if (!noteText.trim()) {
     setError("Please enter an investigation note.");
@@ -491,6 +492,8 @@ async function handleAssignCase() {
       )
     );
 
+    await loadRecommendedAnalyst();
+
     setSuccessMessage("Fraud case assigned successfully.");
   } catch (err) {
     console.error(err);
@@ -500,7 +503,7 @@ async function handleAssignCase() {
   }
 }
 
-  function formatCurrency(value) {
+function formatCurrency(value) {
     return `KES ${Number(value || 0).toLocaleString()}`;
   }
 
@@ -545,17 +548,19 @@ async function handleAssignCase() {
   ).length;
 
   if (loading) {
-    return (
-      <Box
-        minHeight="100vh"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  );
+}
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
@@ -1133,6 +1138,67 @@ async function handleAssignCase() {
     <Typography variant="h6" fontWeight="bold" mb={2}>
       Assign Fraud Case
     </Typography>
+
+    {canAssignCases && (
+  <Card variant="outlined" sx={{ borderRadius: 3, mb: 2 }}>
+    <CardContent>
+      <Typography variant="h6" fontWeight="bold" mb={1}>
+        Smart Assignment Recommendation
+      </Typography>
+
+      {loadingRecommendation ? (
+        <Typography color="text.secondary">
+          Loading recommended analyst...
+        </Typography>
+      ) : recommendedAnalyst ? (
+        <Stack spacing={1.5}>
+          <Typography>
+            <strong>Recommended Analyst:</strong>{" "}
+            {recommendedAnalyst.fullName}
+          </Typography>
+
+          <Typography>
+            <strong>Email:</strong> {recommendedAnalyst.email}
+          </Typography>
+
+          <Typography>
+            <strong>Active Cases:</strong>{" "}
+            {recommendedAnalyst.activeCases}
+          </Typography>
+
+          <Typography>
+            <strong>Total Assigned:</strong>{" "}
+            {recommendedAnalyst.totalAssignedCases}
+          </Typography>
+
+          <Typography>
+            <strong>High Risk Cases:</strong>{" "}
+            {recommendedAnalyst.highRiskCases}
+          </Typography>
+
+          <Alert severity="info">
+            {recommendedAnalyst.recommendationReason}
+          </Alert>
+
+          <Box>
+            <Button
+              variant="contained"
+              onClick={() =>
+                setSelectedAnalystEmail(recommendedAnalyst.email)
+              }
+            >
+              Use Recommendation
+            </Button>
+          </Box>
+        </Stack>
+      ) : (
+        <Typography color="text.secondary">
+          No analyst recommendation available.
+        </Typography>
+      )}
+    </CardContent>
+  </Card>
+)}
 
     <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
       <FormControl fullWidth>

@@ -10,6 +10,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import com.fraudguard.backend.dto.assignment.RecommendedAnalystResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Comparator;
+
 @Service
 public class AnalystWorkloadService {
 
@@ -29,6 +35,47 @@ public class AnalystWorkloadService {
         return analysts.stream()
                 .map(this::buildWorkloadResponse)
                 .toList();
+    }
+
+    public RecommendedAnalystResponse getRecommendedAnalyst() {
+        return getAnalystWorkload()
+                .stream()
+                .min(
+                        Comparator
+                                .comparingLong(this::getActiveCaseCount)
+                                .thenComparingLong(AnalystWorkloadResponse::getHighRiskCases)
+                                .thenComparingLong(AnalystWorkloadResponse::getTotalAssignedCases)
+                                .thenComparing(AnalystWorkloadResponse::getFullName))
+                .map(this::buildRecommendedAnalystResponse)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No fraud analysts available for assignment"));
+    }
+
+    private long getActiveCaseCount(AnalystWorkloadResponse workload) {
+        return workload.getPendingCases() + workload.getUnderReviewCases();
+    }
+
+    private RecommendedAnalystResponse buildRecommendedAnalystResponse(
+            AnalystWorkloadResponse workload) {
+        long activeCases = getActiveCaseCount(workload);
+
+        String reason = "Recommended because this analyst has the lightest active workload: "
+                + activeCases
+                + " active case(s), "
+                + workload.getTotalAssignedCases()
+                + " total assigned case(s), and "
+                + workload.getHighRiskCases()
+                + " high risk case(s).";
+
+        return new RecommendedAnalystResponse(
+                workload.getUserId(),
+                workload.getFullName(),
+                workload.getEmail(),
+                activeCases,
+                workload.getTotalAssignedCases(),
+                workload.getHighRiskCases(),
+                reason);
     }
 
     private AnalystWorkloadResponse buildWorkloadResponse(AppUser analyst) {

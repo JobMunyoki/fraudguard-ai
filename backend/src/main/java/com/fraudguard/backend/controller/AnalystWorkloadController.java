@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import com.fraudguard.backend.dto.assignment.RecommendedAnalystResponse;
+
 @RestController
 @RequestMapping("/api/analyst-workload")
 public class AnalystWorkloadController {
@@ -21,5 +23,10 @@ public class AnalystWorkloadController {
     @GetMapping
     public List<AnalystWorkloadResponse> getAnalystWorkload() {
         return analystWorkloadService.getAnalystWorkload();
+    }
+
+    @GetMapping("/recommendation")
+    public RecommendedAnalystResponse getRecommendedAnalyst() {
+        return analystWorkloadService.getRecommendedAnalyst();
     }
 }

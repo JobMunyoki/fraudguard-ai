@@ -217,21 +217,31 @@ export default function AnalystWorkload() {
   const [error, setError] = useState("");
 
   async function loadWorkload() {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
+    setError("");
 
-      const response = await api.get("/analyst-workload");
+    const response = await api.get("/analyst-workload");
 
-      setWorkload(response.data);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load analyst workload.");
-    } finally {
-      setLoading(false);
+    setWorkload(Array.isArray(response.data) ? response.data : []);
+  } catch (err) {
+    console.error("Analyst workload error:", err);
+
+    if (err.response?.status === 401) {
+      setError("You are not logged in. Please login as admin again.");
+    } else if (err.response?.status === 403) {
+      setError("Access denied. Analyst Workload is for ADMIN only.");
+    } else if (err.code === "ECONNABORTED") {
+      setError("Request timed out. Make sure the backend is running on port 8080.");
+    } else {
+      setError("Failed to load analyst workload. Check backend and token.");
     }
-  }
 
+    setWorkload([]);
+  } finally {
+    setLoading(false);
+  }
+}
   useEffect(() => {
     loadWorkload();
   }, []);
@@ -248,12 +258,19 @@ export default function AnalystWorkload() {
   const totalHighRisk = workload.reduce((sum, item) => sum + item.highRiskCases, 0);
 
   if (loading) {
-    return (
-      <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  );
+}
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
