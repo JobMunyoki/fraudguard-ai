@@ -84,6 +84,12 @@ const sidebarItems = [
     roles: ["ADMIN", "FRAUD_ANALYST"],
   },
   {
+  label: "Analyst Workload",
+  path: "/analyst-workload",
+  icon: <ManageAccounts />,
+  roles: ["ADMIN"],
+},
+  {
   label: "My Cases",
   path: "/my-cases",
   icon: <AssignmentInd />,

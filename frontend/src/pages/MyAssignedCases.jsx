@@ -18,7 +18,6 @@ import {
   Divider,
   Drawer,
   FormControl,
-  InputLabel,
   List,
   ListItem,
   ListItemButton,
@@ -500,21 +499,29 @@ async function handleAddInvestigationNote() {
   </Box>
 
   <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-    <FormControl size="small" sx={{ minWidth: 220 }}>
-      <InputLabel>Case Status</InputLabel>
-      <Select
-        label="Case Status"
-        value={statusFilter}
-        onChange={(event) => setStatusFilter(event.target.value)}
-      >
-        <MenuItem value="ALL">All Cases</MenuItem>
-        <MenuItem value="PENDING">Pending</MenuItem>
-        <MenuItem value="UNDER_REVIEW">Under Review</MenuItem>
-        <MenuItem value="CONFIRMED_FRAUD">Confirmed Fraud</MenuItem>
-        <MenuItem value="FALSE_POSITIVE">False Positive</MenuItem>
-        <MenuItem value="RESOLVED">Resolved</MenuItem>
-      </Select>
-    </FormControl>
+    <Box>
+  <Typography
+    variant="caption"
+    color="text.secondary"
+    sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
+  >
+    Case Status
+  </Typography>
+
+  <FormControl size="small" sx={{ minWidth: 240, backgroundColor: "#ffffff" }}>
+    <Select
+      value={statusFilter}
+      onChange={(event) => setStatusFilter(event.target.value)}
+    >
+      <MenuItem value="ALL">All Cases</MenuItem>
+      <MenuItem value="PENDING">Pending</MenuItem>
+      <MenuItem value="UNDER_REVIEW">Under Review</MenuItem>
+      <MenuItem value="CONFIRMED_FRAUD">Confirmed Fraud</MenuItem>
+      <MenuItem value="FALSE_POSITIVE">False Positive</MenuItem>
+      <MenuItem value="RESOLVED">Resolved</MenuItem>
+    </Select>
+  </FormControl>
+</Box>
 
     <Button variant="outlined" onClick={loadAssignedCases}>
       Refresh

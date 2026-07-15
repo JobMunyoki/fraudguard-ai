@@ -15,6 +15,16 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
 
     List<BankTransaction> findByAssignedAnalystEmailOrderByAssignedAtDesc(String assignedAnalystEmail);
 
+    long countByAssignedAnalystEmail(String assignedAnalystEmail);
+
+    long countByAssignedAnalystEmailAndReviewStatus(
+            String assignedAnalystEmail,
+            ReviewStatus reviewStatus);
+
+    long countByAssignedAnalystEmailAndRiskScoreGreaterThanEqual(
+            String assignedAnalystEmail,
+            Integer riskScore);
+
     long countByPredictionLabel(PredictionLabel predictionLabel);
 
     long countByReviewStatus(ReviewStatus reviewStatus);
