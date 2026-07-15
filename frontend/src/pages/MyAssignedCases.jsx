@@ -11,6 +11,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Drawer,
   List,
@@ -21,6 +25,7 @@ import {
   Snackbar,
   Stack,
   TablePagination,
+  TextField,
   Toolbar,
   Typography,
 } from "@mui/material";
@@ -209,6 +214,11 @@ export default function MyAssignedCases() {
   const [successMessage, setSuccessMessage] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [investigationNotes, setInvestigationNotes] = useState([]);
+  const [noteText, setNoteText] = useState("");
+  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
 
   async function loadAssignedCases() {
     try {
@@ -267,6 +277,68 @@ export default function MyAssignedCases() {
   const confirmedFraudCases = cases.filter(
     (item) => item.reviewStatus === "CONFIRMED_FRAUD"
   ).length;
+
+  async function loadInvestigationNotes(transactionId) {
+  try {
+    setLoadingNotes(true);
+
+    const response = await api.get(`/transactions/${transactionId}/notes`);
+
+    setInvestigationNotes(response.data);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to load investigation notes.");
+  } finally {
+    setLoadingNotes(false);
+  }
+}
+
+async function handleOpenDetails(caseItem) {
+  setSelectedCase(caseItem);
+  setNoteText("");
+  await loadInvestigationNotes(caseItem.id);
+}
+
+function handleCloseDetails() {
+  setSelectedCase(null);
+  setInvestigationNotes([]);
+  setNoteText("");
+}
+
+async function handleAddInvestigationNote() {
+  if (!selectedCase) {
+    return;
+  }
+
+  if (!noteText.trim()) {
+    setError("Please enter an investigation note.");
+    return;
+  }
+
+  try {
+    setSavingNote(true);
+
+    const response = await api.post(
+      `/transactions/${selectedCase.id}/notes`,
+      {
+        note: noteText,
+      }
+    );
+
+    setInvestigationNotes((previousNotes) => [
+      response.data,
+      ...previousNotes,
+    ]);
+
+    setNoteText("");
+    setSuccessMessage("Investigation note added successfully.");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to add investigation note.");
+  } finally {
+    setSavingNote(false);
+  }
+}
 
   if (loading) {
     return (
@@ -469,6 +541,14 @@ export default function MyAssignedCases() {
 
                             <td style={{ padding: "12px" }}>
                               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleOpenDetails(item)}
+                                >
+                                Details
+                                </Button>
+
                                 <Button
                                   size="small"
                                   variant="outlined"
@@ -524,6 +604,213 @@ export default function MyAssignedCases() {
               )}
             </CardContent>
           </Card>
+
+          <Dialog
+  open={Boolean(selectedCase)}
+  onClose={handleCloseDetails}
+  maxWidth="md"
+  fullWidth
+>
+  <DialogTitle>
+    <Typography variant="h6" fontWeight="bold">
+      Assigned Case Details
+    </Typography>
+
+    <Typography variant="body2" color="text.secondary">
+      Review assigned fraud case details and investigation notes
+    </Typography>
+  </DialogTitle>
+
+  <DialogContent dividers>
+    {selectedCase && (
+      <Box>
+        <Stack spacing={3}>
+          <Card variant="outlined" sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" mb={2}>
+                Transaction Information
+              </Typography>
+
+              <Stack spacing={1.5}>
+                <Typography>
+                  <strong>Reference:</strong> {selectedCase.transactionReference}
+                </Typography>
+
+                <Typography>
+                  <strong>Customer:</strong> {selectedCase.customerId}
+                </Typography>
+
+                <Typography>
+                  <strong>Type:</strong> {selectedCase.transactionType}
+                </Typography>
+
+                <Typography>
+                  <strong>Amount:</strong> {formatCurrency(selectedCase.amount)}
+                </Typography>
+
+                <Typography>
+                  <strong>Old Balance:</strong>{" "}
+                  {formatCurrency(selectedCase.oldBalance)}
+                </Typography>
+
+                <Typography>
+                  <strong>New Balance:</strong>{" "}
+                  {formatCurrency(selectedCase.newBalance)}
+                </Typography>
+
+                <Typography>
+                  <strong>Destination Account:</strong>{" "}
+                  {selectedCase.destinationAccount || "N/A"}
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined" sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" mb={2}>
+                Fraud Risk Summary
+              </Typography>
+
+              <Stack spacing={1.5}>
+                <Typography>
+                  <strong>Risk Score:</strong> {selectedCase.riskScore}
+                </Typography>
+
+                <Box>
+                  <Typography component="span" fontWeight="bold">
+                    Prediction:{" "}
+                  </Typography>
+                  <Chip
+                    label={selectedCase.predictionLabel}
+                    size="small"
+                    color={getPredictionColor(selectedCase.predictionLabel)}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography component="span" fontWeight="bold">
+                    Review Status:{" "}
+                  </Typography>
+                  <Chip
+                    label={selectedCase.reviewStatus}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
+
+                <Typography>
+                  <strong>Assigned Analyst:</strong>{" "}
+                  {selectedCase.assignedAnalystName || "N/A"}{" "}
+                  {selectedCase.assignedAnalystEmail
+                    ? `(${selectedCase.assignedAnalystEmail})`
+                    : ""}
+                </Typography>
+
+                <Typography>
+                  <strong>Assigned At:</strong>{" "}
+                  {selectedCase.assignedAt
+                    ? new Date(selectedCase.assignedAt).toLocaleString()
+                    : "N/A"}
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined" sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" mb={2}>
+                Investigation Notes
+              </Typography>
+
+              <Box mb={3}>
+                <TextField
+                  label="Add investigation note"
+                  multiline
+                  minRows={3}
+                  fullWidth
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  placeholder="Example: Customer contacted. Transaction requires further verification."
+                />
+
+                <Button
+                  variant="contained"
+                  sx={{ mt: 2 }}
+                  onClick={handleAddInvestigationNote}
+                  disabled={savingNote}
+                >
+                  {savingNote ? "Saving Note..." : "Add Note"}
+                </Button>
+              </Box>
+
+              {loadingNotes ? (
+                <Typography color="text.secondary">Loading notes...</Typography>
+              ) : investigationNotes.length === 0 ? (
+                <Typography color="text.secondary">
+                  No investigation notes added yet.
+                </Typography>
+              ) : (
+                <Stack spacing={2}>
+                  {investigationNotes.map((note) => (
+                    <Card key={note.id} variant="outlined">
+                      <CardContent>
+                        <Typography>{note.note}</Typography>
+
+                        <Typography variant="caption" color="text.secondary">
+                          Added by {note.createdBy} on{" "}
+                          {new Date(note.createdAt).toLocaleString()}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Stack>
+      </Box>
+    )}
+  </DialogContent>
+
+  <DialogActions>
+    <Button onClick={handleCloseDetails}>Close</Button>
+
+    {selectedCase && (
+      <>
+        <Button
+          variant="outlined"
+          onClick={() => handleReviewStatus(selectedCase.id, "UNDER_REVIEW")}
+          disabled={updating}
+        >
+          Mark Under Review
+        </Button>
+
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() =>
+            handleReviewStatus(selectedCase.id, "CONFIRMED_FRAUD")
+          }
+          disabled={updating}
+        >
+          Confirm Fraud
+        </Button>
+
+        <Button
+          variant="outlined"
+          color="success"
+          onClick={() =>
+            handleReviewStatus(selectedCase.id, "FALSE_POSITIVE")
+          }
+          disabled={updating}
+        >
+          False Positive
+        </Button>
+      </>
+    )}
+  </DialogActions>
+</Dialog>
 
           <Snackbar
             open={Boolean(successMessage)}
