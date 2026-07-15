@@ -687,9 +687,34 @@ function formatDateTime(value) {
             </Box>
 
             <Stack direction="row" spacing={2} alignItems="center">
-              <Chip label="Fraud Analyst" color="error" variant="outlined" />
-              <Avatar sx={{ bgcolor: "#dc2626" }}>J</Avatar>
-            </Stack>
+  <Chip
+    label={localStorage.getItem("fraudguard_role") || "USER"}
+    color={
+      localStorage.getItem("fraudguard_role") === "ADMIN"
+        ? "primary"
+        : "error"
+    }
+    variant="outlined"
+  />
+
+  <Button
+    variant="outlined"
+    color="error"
+    onClick={() => {
+      localStorage.removeItem("fraudguard_token");
+      localStorage.removeItem("fraudguard_fullName");
+      localStorage.removeItem("fraudguard_email");
+      localStorage.removeItem("fraudguard_role");
+      window.location.href = "/login";
+    }}
+  >
+    Logout
+  </Button>
+
+  <Avatar sx={{ bgcolor: "#2563eb" }}>
+    {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
+  </Avatar>
+</Stack>
           </Toolbar>
         </AppBar>
 

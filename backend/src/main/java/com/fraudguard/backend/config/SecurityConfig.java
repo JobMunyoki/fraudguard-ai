@@ -36,6 +36,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/api/health").permitAll()
 
+                                                .requestMatchers("/api/dashboard/sla-summary")
+                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST")
                                                 // VIEWER, FRAUD_ANALYST, and ADMIN can view dashboard/reports
                                                 .requestMatchers("/api/dashboard/**").hasAnyRole(
                                                                 "ADMIN",

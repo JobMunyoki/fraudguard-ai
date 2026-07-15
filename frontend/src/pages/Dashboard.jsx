@@ -307,6 +307,17 @@ export default function Dashboard() {
   const [successMessage, setSuccessMessage] = useState("");
   const [alertAnchorEl, setAlertAnchorEl] = useState(null);
 
+  const [slaSummary, setSlaSummary] = useState({
+  overdueCases: 0,
+  escalatedCases: 0,
+  casesDueToday: 0,
+  highRiskOpenCases: 0,
+  openCases: 0,
+  totalAssignedCases: 0,
+});
+
+const [slaError, setSlaError] = useState("");
+
   const role = localStorage.getItem("fraudguard_role");
   const canManageTransactions = role === "ADMIN" || role === "FRAUD_ANALYST";
 
@@ -341,8 +352,9 @@ export default function Dashboard() {
   }
 }
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+  loadDashboardData();
+  loadSlaSummary();
+}, []);
 
     const predictionChartData = [
     {
@@ -474,6 +486,18 @@ function handleCloseAlertCenter() {
         setError("Failed to update review status. Make sure the backend is running.");
     }
     }
+
+  async function loadSlaSummary() {
+  try {
+    const response = await api.get("/dashboard/sla-summary");
+
+    setSlaSummary(response.data);
+    setSlaError("");
+  } catch (err) {
+    console.error("SLA summary error:", err);
+    setSlaError("Failed to load SLA monitoring summary.");
+  }
+}
 
   if (loading) {
     return (
@@ -915,6 +939,122 @@ function handleCloseAlertCenter() {
             </Card>
           </Grid>
         </Grid>
+
+<Box mt={4} mb={3}>
+  <Typography variant="h5" fontWeight="bold" mb={1}>
+    SLA Monitoring
+  </Typography>
+
+  <Typography color="text.secondary" mb={2}>
+    Track overdue, escalated, and high-risk fraud cases.
+  </Typography>
+
+  {slaError && (
+    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSlaError("")}>
+      {slaError}
+    </Alert>
+  )}
+
+  <Box
+    sx={{
+      display: "grid",
+      gridTemplateColumns: {
+        xs: "1fr",
+        sm: "repeat(2, 1fr)",
+        md: "repeat(3, 1fr)",
+      },
+      gap: 3,
+    }}
+  >
+    <Card sx={{ borderRadius: 3 }}>
+      <CardContent>
+        <Typography color="text.secondary">Overdue Cases</Typography>
+
+        <Typography variant="h4" fontWeight="bold" mt={1}>
+          {slaSummary.overdueCases}
+        </Typography>
+
+        <Box mt={1}>
+          <Chip
+            label={slaSummary.overdueCases > 0 ? "Needs Attention" : "Clear"}
+            color={slaSummary.overdueCases > 0 ? "error" : "success"}
+            size="small"
+          />
+        </Box>
+      </CardContent>
+    </Card>
+
+    <Card sx={{ borderRadius: 3 }}>
+      <CardContent>
+        <Typography color="text.secondary">Escalated Cases</Typography>
+
+        <Typography variant="h4" fontWeight="bold" mt={1}>
+          {slaSummary.escalatedCases}
+        </Typography>
+
+        <Box mt={1}>
+          <Chip label="Escalated" color="warning" size="small" />
+        </Box>
+      </CardContent>
+    </Card>
+
+    <Card sx={{ borderRadius: 3 }}>
+      <CardContent>
+        <Typography color="text.secondary">Cases Due Today</Typography>
+
+        <Typography variant="h4" fontWeight="bold" mt={1}>
+          {slaSummary.casesDueToday}
+        </Typography>
+
+        <Box mt={1}>
+          <Chip label="Due Today" color="primary" size="small" />
+        </Box>
+      </CardContent>
+    </Card>
+
+    <Card sx={{ borderRadius: 3 }}>
+      <CardContent>
+        <Typography color="text.secondary">High-Risk Open Cases</Typography>
+
+        <Typography variant="h4" fontWeight="bold" mt={1}>
+          {slaSummary.highRiskOpenCases}
+        </Typography>
+
+        <Box mt={1}>
+          <Chip label="High Risk" color="error" size="small" />
+        </Box>
+      </CardContent>
+    </Card>
+
+    <Card sx={{ borderRadius: 3 }}>
+      <CardContent>
+        <Typography color="text.secondary">Open Cases</Typography>
+
+        <Typography variant="h4" fontWeight="bold" mt={1}>
+          {slaSummary.openCases}
+        </Typography>
+
+        <Box mt={1}>
+          <Chip label="Open" color="info" size="small" />
+        </Box>
+      </CardContent>
+    </Card>
+
+    <Card sx={{ borderRadius: 3 }}>
+      <CardContent>
+        <Typography color="text.secondary">Total Assigned Cases</Typography>
+
+        <Typography variant="h4" fontWeight="bold" mt={1}>
+          {slaSummary.totalAssignedCases}
+        </Typography>
+
+        <Box mt={1}>
+          <Chip label="Assigned" color="default" size="small" />
+        </Box>
+      </CardContent>
+    </Card>
+  </Box>
+</Box>
 
 <Box mt={4}>
   <Typography variant="h6" fontWeight="bold" mb={2}>
