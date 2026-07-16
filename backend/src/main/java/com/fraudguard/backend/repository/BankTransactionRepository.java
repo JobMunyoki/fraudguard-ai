@@ -10,6 +10,13 @@ import java.util.Collection;
 
 import java.util.List;
 
+import com.fraudguard.backend.entity.BankTransaction;
+import com.fraudguard.backend.entity.ReviewStatus;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
 public interface BankTransactionRepository extends JpaRepository<BankTransaction, Long> {
 
         List<BankTransaction> findAllByOrderByCreatedAtDesc();
@@ -17,6 +24,12 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
         List<BankTransaction> findByPredictionLabelInOrderByCreatedAtDesc(List<PredictionLabel> labels);
 
         List<BankTransaction> findByAssignedAnalystEmailOrderByAssignedAtDesc(String assignedAnalystEmail);
+
+        List<BankTransaction> findByEscalatedTrueOrderByEscalatedAtDesc();
+
+        List<BankTransaction> findBySlaDueAtBeforeAndReviewStatusNotInOrderBySlaDueAtAsc(
+                        LocalDateTime now,
+                        Collection<ReviewStatus> closedStatuses);
 
         long countByAssignedAnalystEmail(String assignedAnalystEmail);
 
@@ -51,4 +64,5 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
                         Collection<ReviewStatus> closedStatuses);
 
         long countByAssignedAnalystEmailIsNotNull();
+
 }

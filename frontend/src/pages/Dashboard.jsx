@@ -316,6 +316,7 @@ export default function Dashboard() {
   totalAssignedCases: 0,
 });
 
+const [slaCases, setSlaCases] = useState([]);
 const [slaError, setSlaError] = useState("");
 
   const role = localStorage.getItem("fraudguard_role");
@@ -345,8 +346,10 @@ const [slaError, setSlaError] = useState("");
   } catch (err) {
     console.error(err);
     setError(
-      "Failed to load dashboard data. Make sure the backend is running on port 8080."
-    );
+  err.response?.status
+    ? `Failed to load dashboard data. API returned ${err.response.status}.`
+    : "Failed to load dashboard data. Check backend, token, or network."
+);
   } finally {
     setLoading(false);
   }
@@ -354,6 +357,7 @@ const [slaError, setSlaError] = useState("");
   useEffect(() => {
   loadDashboardData();
   loadSlaSummary();
+  loadSlaCases();
 }, []);
 
     const predictionChartData = [
@@ -487,6 +491,18 @@ function handleCloseAlertCenter() {
     }
     }
 
+async function loadSlaCases() {
+  try {
+    const response = await api.get("/dashboard/sla-cases");
+
+    setSlaCases(Array.isArray(response.data) ? response.data : []);
+  } catch (err) {
+    console.error("SLA cases error:", err);
+    setSlaError("Failed to load overdue and escalated cases.");
+    setSlaCases([]);
+  }
+}
+
   async function loadSlaSummary() {
   try {
     const response = await api.get("/dashboard/sla-summary");
@@ -497,6 +513,39 @@ function handleCloseAlertCenter() {
     console.error("SLA summary error:", err);
     setSlaError("Failed to load SLA monitoring summary.");
   }
+}
+
+  function formatDateTime(value) {
+  if (!value) {
+    return "N/A";
+  }
+
+  return new Date(value).toLocaleString();
+}
+
+function formatCurrency(value) {
+  return `KES ${Number(value || 0).toLocaleString()}`;
+}
+
+function getSlaCaseStatus(caseItem) {
+  if (caseItem.escalated) {
+    return {
+      label: "ESCALATED",
+      color: "error",
+    };
+  }
+
+  if (caseItem.slaDueAt && new Date(caseItem.slaDueAt) < new Date()) {
+    return {
+      label: "OVERDUE",
+      color: "warning",
+    };
+  }
+
+  return {
+    label: "MONITOR",
+    color: "primary",
+  };
 }
 
   if (loading) {
@@ -1054,6 +1103,125 @@ function handleCloseAlertCenter() {
       </CardContent>
     </Card>
   </Box>
+</Box>
+
+<Box mt={4} mb={3}>
+  <Typography variant="h5" fontWeight="bold" mb={1}>
+    Overdue & Escalated Cases
+  </Typography>
+
+  <Typography color="text.secondary" mb={2}>
+    Review cases that require urgent attention or senior fraud review.
+  </Typography>
+
+  <Card sx={{ borderRadius: 3 }}>
+    <CardContent>
+      {slaCases.length === 0 ? (
+        <Typography color="text.secondary">
+          No overdue or escalated cases found.
+        </Typography>
+      ) : (
+        <Box sx={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "14px",
+            }}
+          >
+            <thead>
+              <tr style={{ textAlign: "left", backgroundColor: "#f1f5f9" }}>
+                <th style={{ padding: "12px" }}>Status</th>
+                <th style={{ padding: "12px" }}>Reference</th>
+                <th style={{ padding: "12px" }}>Customer</th>
+                <th style={{ padding: "12px" }}>Amount</th>
+                <th style={{ padding: "12px" }}>Risk</th>
+                <th style={{ padding: "12px" }}>Review</th>
+                <th style={{ padding: "12px" }}>Assigned Analyst</th>
+                <th style={{ padding: "12px" }}>SLA Due</th>
+                <th style={{ padding: "12px" }}>Escalated At</th>
+                <th style={{ padding: "12px" }}>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {slaCases.map((caseItem) => {
+                const caseStatus = getSlaCaseStatus(caseItem);
+
+                return (
+                  <tr
+                    key={caseItem.id}
+                    style={{ borderBottom: "1px solid #e2e8f0" }}
+                  >
+                    <td style={{ padding: "12px" }}>
+                      <Chip
+                        label={caseStatus.label}
+                        color={caseStatus.color}
+                        size="small"
+                      />
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      {caseItem.transactionReference}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      {caseItem.customerId}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      {formatCurrency(caseItem.amount)}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <Chip
+                        label={caseItem.riskScore}
+                        color={
+                          Number(caseItem.riskScore) >= 80 ? "error" : "warning"
+                        }
+                        size="small"
+                      />
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <Chip
+                        label={caseItem.reviewStatus}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      {caseItem.assignedAnalystEmail || "Unassigned"}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      {formatDateTime(caseItem.slaDueAt)}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      {formatDateTime(caseItem.escalatedAt)}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <Button
+                        component={Link}
+                        to="/fraud-alerts"
+                        variant="outlined"
+                        size="small"
+                      >
+                        Open Alerts
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Box>
+      )}
+    </CardContent>
+  </Card>
 </Box>
 
 <Box mt={4}>

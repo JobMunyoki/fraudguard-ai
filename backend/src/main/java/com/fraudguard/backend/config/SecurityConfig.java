@@ -32,44 +32,28 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
-                                                // Public endpoints
                                                 .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/api/health").permitAll()
 
                                                 .requestMatchers("/api/dashboard/sla-summary")
                                                 .hasAnyRole("ADMIN", "FRAUD_ANALYST")
-                                                // VIEWER, FRAUD_ANALYST, and ADMIN can view dashboard/reports
-                                                .requestMatchers("/api/dashboard/**").hasAnyRole(
-                                                                "ADMIN",
-                                                                "FRAUD_ANALYST",
-                                                                "VIEWER")
-                                                .requestMatchers("/api/reports/**").hasAnyRole(
-                                                                "ADMIN",
-                                                                "FRAUD_ANALYST",
-                                                                "VIEWER")
-
-                                                // Only ADMIN and FRAUD_ANALYST can manage transactions/fraud alerts
-                                                .requestMatchers("/api/transactions/**").hasAnyRole(
-                                                                "ADMIN",
-                                                                "FRAUD_ANALYST")
-                                                .requestMatchers("/api/fraud-alerts/**").hasAnyRole(
-                                                                "ADMIN",
-                                                                "FRAUD_ANALYST")
-
-                                                // Audit logs are admin-only
-                                                .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
+                                                .requestMatchers("/api/dashboard/sla-cases")
+                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST")
+                                                .requestMatchers("/api/dashboard/**")
+                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST", "VIEWER")
 
                                                 .requestMatchers("/api/users/**").hasRole("ADMIN")
-
-                                                .requestMatchers("/api/analyst-workload**").hasRole("ADMIN")
+                                                .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
+                                                .requestMatchers("/api/analyst-workload/**").hasRole("ADMIN")
 
                                                 .requestMatchers(org.springframework.http.HttpMethod.PUT,
                                                                 "/api/transactions/*/escalate")
                                                 .hasRole("ADMIN")
+                                                .requestMatchers("/api/transactions/**")
+                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST")
 
                                                 .requestMatchers("/api/profile/**").authenticated()
 
-                                                // Any other request requires login
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,
