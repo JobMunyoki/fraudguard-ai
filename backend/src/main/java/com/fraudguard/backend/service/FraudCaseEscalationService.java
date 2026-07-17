@@ -14,12 +14,15 @@ public class FraudCaseEscalationService {
 
     private final BankTransactionRepository bankTransactionRepository;
     private final AuditLogService auditLogService;
+    private final EmailNotificationService emailNotificationService;
 
     public FraudCaseEscalationService(
             BankTransactionRepository bankTransactionRepository,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            EmailNotificationService emailNotificationService) {
         this.bankTransactionRepository = bankTransactionRepository;
         this.auditLogService = auditLogService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     public BankTransaction escalateCase(
@@ -51,6 +54,8 @@ public class FraudCaseEscalationService {
                 "Transaction " + savedTransaction.getTransactionReference()
                         + " escalated by " + escalatedBy
                         + ". Reason: " + request.getEscalationReason());
+
+        emailNotificationService.sendEscalationEmail(savedTransaction);
 
         return savedTransaction;
     }
