@@ -258,6 +258,37 @@ export default function AuditLogs() {
     page * rowsPerPage + rowsPerPage
   );
 
+function buildAuditLogsCsvUrl() {
+  const headers = [
+    "Action",
+    "Reference",
+    "Performed By",
+    "Description",
+    "Date/Time",
+  ];
+
+  const rows = logs.map((log) => [
+    log.action || "",
+    log.transactionReference || log.reference || "",
+    log.performedBy || "",
+    log.description || "",
+    log.createdAt ? new Date(log.createdAt).toLocaleString() : "",
+  ]);
+
+  const csvRows = [headers, ...rows].map((row) =>
+    row
+      .map((value) => {
+        const safeValue = String(value).replace(/"/g, '""');
+        return `"${safeValue}"`;
+      })
+      .join(",")
+  );
+
+  const csvContent = "\uFEFF" + csvRows.join("\n");
+
+  return "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+}
+
   if (loading) {
     return (
       <Box
@@ -342,6 +373,22 @@ export default function AuditLogs() {
             <Typography color="text.secondary" mt={1}>
               Review all important actions performed in FraudGuard AI.
             </Typography>
+
+            <Button
+              component="a"
+              href={logs.length > 0 ? buildAuditLogsCsvUrl() : undefined}
+              download="fraudguard-audit-logs.csv"
+              variant="contained"
+              sx={{ mt: 2, mb: 2 }}
+              onClick={(event) => {
+                if (!logs || logs.length === 0) {
+                  event.preventDefault();
+                  setError("No audit logs available to export.");
+                }
+              }}
+            >
+              Export Audit Logs CSV
+            </Button>
           </Box>
 
           {error && (

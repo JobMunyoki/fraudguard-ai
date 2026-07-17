@@ -13,6 +13,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Divider,
   Drawer,
   Grid,
@@ -23,6 +27,7 @@ import {
   ListItemText,
   Snackbar,
   Stack,
+  TextField,
   TablePagination,
   Toolbar,
   Typography,
@@ -294,6 +299,16 @@ export default function Reports() {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [reportFilters, setReportFilters] = useState({
+    search: "",
+    prediction: "ALL",
+    reviewStatus: "ALL",
+    transactionType: "ALL",
+    dateFrom: "",
+    dateTo: "",
+    minRisk: "",
+    maxRisk: "",
+  });
 
   async function loadReports() {
     try {
@@ -378,64 +393,66 @@ export default function Reports() {
     }, {})
   );
 
-  const paginatedFlaggedTransactions = flaggedTransactions.slice(
-  page * rowsPerPage,
-  page * rowsPerPage + rowsPerPage
-  );
-
+  
   function exportReportCsv() {
-    const rows = [
-      [
-        "Transaction Reference",
-        "Customer ID",
-        "Transaction Type",
-        "Amount",
-        "Old Balance",
-        "New Balance",
-        "Risk Score",
-        "Prediction",
-        "Confidence",
-        "Prediction Source",
-        "Model Used",
-        "Review Status",
-      ],
-      ...transactions.map((transaction) => [
-        transaction.transactionReference,
-        transaction.customerId,
-        transaction.transactionType,
-        transaction.amount,
-        transaction.oldBalance,
-        transaction.newBalance,
-        transaction.riskScore,
-        transaction.predictionLabel,
-        transaction.confidence !== null && transaction.confidence !== undefined
-          ? `${Number(transaction.confidence * 100).toFixed(1)}%`
-          : "N/A",
-        transaction.predictionSource || "UNKNOWN",
-        transaction.modelUsed || "N/A",
-        transaction.reviewStatus,
-      ]),
-    ];
+  const rows = [
+    [
+      "Transaction Reference",
+      "Customer ID",
+      "Transaction Type",
+      "Amount",
+      "Old Balance",
+      "New Balance",
+      "Risk Score",
+      "Prediction",
+      "Confidence",
+      "Prediction Source",
+      "Model Used",
+      "Review Status",
+    ],
+    ...filteredReportTransactions.map((transaction) => [
+      transaction.transactionReference,
+      transaction.customerId,
+      transaction.transactionType,
+      transaction.amount,
+      transaction.oldBalance,
+      transaction.newBalance,
+      transaction.riskScore,
+      transaction.predictionLabel,
+      transaction.confidence !== null && transaction.confidence !== undefined
+        ? `${Number(transaction.confidence * 100).toFixed(1)}%`
+        : "N/A",
+      transaction.predictionSource || "UNKNOWN",
+      transaction.modelUsed || "N/A",
+      transaction.reviewStatus,
+    ]),
+  ];
 
-    const csvContent = rows
-      .map((row) => row.map((value) => `"${value ?? ""}"`).join(","))
-      .join("\n");
+  const csvContent = rows
+    .map((row) =>
+      row
+        .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
+        .join(",")
+    )
+    .join("\n");
 
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
 
-    link.href = url;
-    link.setAttribute("download", "fraudguard-ai-report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  link.href = url;
+  link.setAttribute("download", "fraudguard-ai-filtered-report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-    setSuccessMessage("CSV report exported successfully.");
-  }
+  URL.revokeObjectURL(url);
+
+  setSuccessMessage("Filtered CSV report exported successfully.");
+}
 
   function exportReportPdf() {
   const doc = new jsPDF();
@@ -478,7 +495,7 @@ export default function Reports() {
     },
   });
 
-  const flaggedRows = flaggedTransactions.map((transaction) => [
+  const flaggedRows = filteredReportTransactions.map((transaction) => [
     transaction.transactionReference,
     transaction.customerId,
     transaction.transactionType,
@@ -542,6 +559,101 @@ export default function Reports() {
 
   setSuccessMessage("PDF report exported successfully.");
 }
+
+function handleReportFilterChange(field, value) {
+  setReportFilters((previousFilters) => ({
+    ...previousFilters,
+    [field]: value,
+  }));
+}
+
+function resetReportFilters() {
+  setReportFilters({
+    search: "",
+    prediction: "ALL",
+    reviewStatus: "ALL",
+    transactionType: "ALL",
+    dateFrom: "",
+    dateTo: "",
+    minRisk: "",
+    maxRisk: "",
+  });
+}
+
+function getFilteredReportTransactions() {
+  return flaggedTransactions.filter((transaction) => {
+    const searchTerm = reportFilters.search.toLowerCase().trim();
+
+    const matchesSearch =
+      !searchTerm ||
+      String(transaction.transactionReference || "")
+        .toLowerCase()
+        .includes(searchTerm) ||
+      String(transaction.customerId || "")
+        .toLowerCase()
+        .includes(searchTerm) ||
+      String(transaction.destinationAccount || "")
+        .toLowerCase()
+        .includes(searchTerm);
+
+    const matchesPrediction =
+      reportFilters.prediction === "ALL" ||
+      transaction.predictionLabel === reportFilters.prediction;
+
+    const matchesReviewStatus =
+      reportFilters.reviewStatus === "ALL" ||
+      transaction.reviewStatus === reportFilters.reviewStatus;
+
+    const matchesTransactionType =
+      reportFilters.transactionType === "ALL" ||
+      transaction.transactionType === reportFilters.transactionType;
+
+    const riskScore = Number(transaction.riskScore || 0);
+
+    const matchesMinRisk =
+      reportFilters.minRisk === "" ||
+      riskScore >= Number(reportFilters.minRisk);
+
+    const matchesMaxRisk =
+      reportFilters.maxRisk === "" ||
+      riskScore <= Number(reportFilters.maxRisk);
+
+    let matchesDateFrom = true;
+    let matchesDateTo = true;
+
+    if (transaction.createdAt) {
+      const transactionDate = new Date(transaction.createdAt);
+
+      if (reportFilters.dateFrom) {
+        const fromDate = new Date(`${reportFilters.dateFrom}T00:00:00`);
+        matchesDateFrom = transactionDate >= fromDate;
+      }
+
+      if (reportFilters.dateTo) {
+        const toDate = new Date(`${reportFilters.dateTo}T23:59:59`);
+        matchesDateTo = transactionDate <= toDate;
+      }
+    }
+
+    return (
+      matchesSearch &&
+      matchesPrediction &&
+      matchesReviewStatus &&
+      matchesTransactionType &&
+      matchesMinRisk &&
+      matchesMaxRisk &&
+      matchesDateFrom &&
+      matchesDateTo
+    );
+  });
+}
+
+const filteredReportTransactions = getFilteredReportTransactions();
+
+const paginatedFlaggedTransactions = filteredReportTransactions.slice(
+  page * rowsPerPage,
+  page * rowsPerPage + rowsPerPage
+);
 
   if (loading) {
     return (
@@ -854,17 +966,162 @@ export default function Reports() {
                 gap={2}
               >
                 <Box>
+                  <Card sx={{ borderRadius: 3, mb: 3 }}>
+  <CardContent>
+    <Typography variant="h6" fontWeight="bold" mb={2}>
+      Advanced Report Filters
+    </Typography>
+
+    <Stack spacing={2}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            md: "repeat(4, 1fr)",
+          },
+          gap: 2,
+        }}
+      >
+        <TextField
+          label="Search"
+          value={reportFilters.search}
+          onChange={(event) =>
+            handleReportFilterChange("search", event.target.value)
+          }
+          placeholder="Reference, customer, account"
+          fullWidth
+        />
+
+        <FormControl fullWidth>
+          <InputLabel>Prediction</InputLabel>
+          <Select
+            label="Prediction"
+            value={reportFilters.prediction}
+            onChange={(event) =>
+              handleReportFilterChange("prediction", event.target.value)
+            }
+          >
+            <MenuItem value="ALL">All Predictions</MenuItem>
+            <MenuItem value="NORMAL">Normal</MenuItem>
+            <MenuItem value="SUSPICIOUS">Suspicious</MenuItem>
+            <MenuItem value="FRAUD">Fraud</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <InputLabel>Review Status</InputLabel>
+          <Select
+            label="Review Status"
+            value={reportFilters.reviewStatus}
+            onChange={(event) =>
+              handleReportFilterChange("reviewStatus", event.target.value)
+            }
+          >
+            <MenuItem value="ALL">All Statuses</MenuItem>
+            <MenuItem value="PENDING">Pending</MenuItem>
+            <MenuItem value="UNDER_REVIEW">Under Review</MenuItem>
+            <MenuItem value="CONFIRMED_FRAUD">Confirmed Fraud</MenuItem>
+            <MenuItem value="FALSE_POSITIVE">False Positive</MenuItem>
+            <MenuItem value="RESOLVED">Resolved</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <InputLabel>Transaction Type</InputLabel>
+          <Select
+            label="Transaction Type"
+            value={reportFilters.transactionType}
+            onChange={(event) =>
+              handleReportFilterChange("transactionType", event.target.value)
+            }
+          >
+            <MenuItem value="ALL">All Types</MenuItem>
+            <MenuItem value="CASH_OUT">Cash Out</MenuItem>
+            <MenuItem value="TRANSFER">Transfer</MenuItem>
+            <MenuItem value="PAYMENT">Payment</MenuItem>
+            <MenuItem value="DEPOSIT">Deposit</MenuItem>
+          </Select>
+        </FormControl>
+
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight="bold">
+            Date From
+          </Typography>
+
+          <TextField
+            type="date"
+            value={reportFilters.dateFrom}
+            onChange={(event) =>
+              handleReportFilterChange("dateFrom", event.target.value)
+            }
+            fullWidth
+            sx={{ mt: 0.5 }}
+          />
+        </Box>
+
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight="bold">
+            Date To
+          </Typography>
+
+          <TextField
+            type="date"
+            value={reportFilters.dateTo}
+            onChange={(event) =>
+              handleReportFilterChange("dateTo", event.target.value)
+            }
+            fullWidth
+            sx={{ mt: 0.5 }}
+          />
+        </Box>
+
+        <TextField
+          label="Minimum Risk"
+          type="number"
+          value={reportFilters.minRisk}
+          onChange={(event) =>
+            handleReportFilterChange("minRisk", event.target.value)
+          }
+          fullWidth
+        />
+
+        <TextField
+          label="Maximum Risk"
+          type="number"
+          value={reportFilters.maxRisk}
+          onChange={(event) =>
+            handleReportFilterChange("maxRisk", event.target.value)
+          }
+          fullWidth
+        />
+      </Box>
+
+      <Stack direction="row" spacing={2}>
+        <Button variant="outlined" onClick={resetReportFilters}>
+          Reset Filters
+        </Button>
+
+        <Chip
+          label={`Showing ${filteredReportTransactions.length} of ${flaggedTransactions.length} records`}
+          color="primary"
+          variant="outlined"
+        />
+      </Stack>
+    </Stack>
+  </CardContent>
+</Card>
                   <Typography variant="h6" fontWeight="bold">
                     Flagged Transactions Report
                   </Typography>
 
                   <Typography color="text.secondary">
-                    Showing {flaggedTransactions.length} suspicious or fraud transactions
+                    Showing {filteredReportTransactions.length} of {flaggedTransactions.length} suspicious or fraud transactions
                   </Typography>
                 </Box>
               </Box>
 
-              {flaggedTransactions.length === 0 ? (
+              {filteredReportTransactions.length === 0 ? (
                 <Typography color="text.secondary">
                   No flagged transactions found.
                 </Typography>
@@ -965,7 +1222,7 @@ export default function Reports() {
 
                         <TablePagination
                           component="div"
-                          count={flaggedTransactions.length}
+                          count={filteredReportTransactions.length}
                           page={page}
                           onPageChange={handleChangePage}
                           rowsPerPage={rowsPerPage}
