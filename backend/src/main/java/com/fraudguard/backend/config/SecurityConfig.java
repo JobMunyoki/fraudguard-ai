@@ -54,6 +54,8 @@ public class SecurityConfig {
 
                                                 .requestMatchers("/api/profile/**").authenticated()
 
+                                                .requestMatchers("/api/sla-settings/**").hasRole("ADMIN")
+
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,

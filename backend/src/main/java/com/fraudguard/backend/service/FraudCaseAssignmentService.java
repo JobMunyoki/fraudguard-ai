@@ -16,72 +16,79 @@ import java.util.List;
 @Service
 public class FraudCaseAssignmentService {
 
-    private final BankTransactionRepository bankTransactionRepository;
-    private final AppUserRepository appUserRepository;
-    private final AuditLogService auditLogService;
+        private final BankTransactionRepository bankTransactionRepository;
+        private final AppUserRepository appUserRepository;
+        private final AuditLogService auditLogService;
 
-    public FraudCaseAssignmentService(
-            BankTransactionRepository bankTransactionRepository,
-            AppUserRepository appUserRepository,
-            AuditLogService auditLogService) {
-        this.bankTransactionRepository = bankTransactionRepository;
-        this.appUserRepository = appUserRepository;
-        this.auditLogService = auditLogService;
-    }
+        private final SlaRuleSettingsService slaRuleSettingsService;
 
-    public List<BankTransaction> getMyAssignedCases() {
-        String currentUserEmail = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-
-        return bankTransactionRepository
-                .findByAssignedAnalystEmailOrderByAssignedAtDesc(currentUserEmail);
-    }
-
-    public BankTransaction assignAnalyst(Long transactionId, AssignAnalystRequest request) {
-        if (request.getAnalystEmail() == null || request.getAnalystEmail().trim().isEmpty()) {
-            throw new RuntimeException("Analyst email is required.");
+        public FraudCaseAssignmentService(
+                        BankTransactionRepository bankTransactionRepository,
+                        AppUserRepository appUserRepository,
+                        AuditLogService auditLogService,
+                        SlaRuleSettingsService slaRuleSettingsService) {
+                this.bankTransactionRepository = bankTransactionRepository;
+                this.appUserRepository = appUserRepository;
+                this.auditLogService = auditLogService;
+                this.slaRuleSettingsService = slaRuleSettingsService;
         }
 
-        BankTransaction transaction = bankTransactionRepository.findById(transactionId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found."));
+        public List<BankTransaction> getMyAssignedCases() {
+                String currentUserEmail = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication()
+                                .getName();
 
-        AppUser analyst = appUserRepository.findByEmail(request.getAnalystEmail())
-                .orElseThrow(() -> new RuntimeException("Analyst user not found."));
-
-        if (analyst.getRole() != Role.FRAUD_ANALYST) {
-            throw new RuntimeException("Selected user is not a fraud analyst.");
+                return bankTransactionRepository
+                                .findByAssignedAnalystEmailOrderByAssignedAtDesc(currentUserEmail);
         }
 
-        String oldAssignedAnalyst = transaction.getAssignedAnalystEmail();
+        public BankTransaction assignAnalyst(Long transactionId, AssignAnalystRequest request) {
+                if (request.getAnalystEmail() == null || request.getAnalystEmail().trim().isEmpty()) {
+                        throw new RuntimeException("Analyst email is required.");
+                }
 
-        transaction.setAssignedAnalystEmail(analyst.getEmail());
-        transaction.setAssignedAnalystName(analyst.getFullName());
-        LocalDateTime assignedTime = LocalDateTime.now();
-        transaction.setAssignedAt(assignedTime);
+                BankTransaction transaction = bankTransactionRepository.findById(transactionId)
+                                .orElseThrow(() -> new RuntimeException("Transaction not found."));
 
-        // SLA deadline: case should be handled within 24 hours after assignment
-        transaction.setSlaDueAt(assignedTime.plusHours(24));
+                AppUser analyst = appUserRepository.findByEmail(request.getAnalystEmail())
+                                .orElseThrow(() -> new RuntimeException("Analyst user not found."));
 
-        BankTransaction savedTransaction = bankTransactionRepository.save(transaction);
+                if (analyst.getRole() != Role.FRAUD_ANALYST) {
+                        throw new RuntimeException("Selected user is not a fraud analyst.");
+                }
 
-        String performedBy = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
+                String oldAssignedAnalyst = transaction.getAssignedAnalystEmail();
 
-        auditLogService.createLog(
-                "CASE_ASSIGNED",
-                savedTransaction.getTransactionReference(),
-                performedBy,
-                "Transaction "
-                        + savedTransaction.getTransactionReference()
-                        + " assigned from "
-                        + (oldAssignedAnalyst == null ? "UNASSIGNED" : oldAssignedAnalyst)
-                        + " to "
-                        + analyst.getEmail());
+                transaction.setAssignedAnalystEmail(analyst.getEmail());
+                transaction.setAssignedAnalystName(analyst.getFullName());
+                LocalDateTime assignedTime = LocalDateTime.now();
+                transaction.setAssignedAt(assignedTime);
 
-        return savedTransaction;
-    }
+                // SLA deadline: case should be handled within 24 hours after assignment
+                transaction.setSlaDueAt(
+                                slaRuleSettingsService.calculateSlaDueAt(
+                                                assignedTime,
+                                                transaction.getRiskScore()));
+
+                BankTransaction savedTransaction = bankTransactionRepository.save(transaction);
+
+                String performedBy = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication()
+                                .getName();
+
+                auditLogService.createLog(
+                                "CASE_ASSIGNED",
+                                savedTransaction.getTransactionReference(),
+                                performedBy,
+                                "Transaction "
+                                                + savedTransaction.getTransactionReference()
+                                                + " assigned from "
+                                                + (oldAssignedAnalyst == null ? "UNASSIGNED" : oldAssignedAnalyst)
+                                                + " to "
+                                                + analyst.getEmail());
+
+                return savedTransaction;
+        }
 }

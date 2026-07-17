@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import api from "../api/axiosConfig";
 import {
   Alert,
   AppBar,
@@ -265,12 +266,30 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState(defaultSettings);
   const [successMessage, setSuccessMessage] = useState("");
 
+  const [slaSettings, setSlaSettings] = useState({
+  criticalRiskThreshold: 90,
+  highRiskThreshold: 70,
+  mediumRiskThreshold: 40,
+  criticalRiskSlaHours: 4,
+  highRiskSlaHours: 12,
+  mediumRiskSlaHours: 24,
+  lowRiskSlaHours: 48,
+});
+
+const [slaLoading, setSlaLoading] = useState(false);
+const [slaSaving, setSlaSaving] = useState(false);
+const [slaError, setSlaError] = useState("");
+const [slaSuccess, setSlaSuccess] = useState("");
+const [slaUpdatedBy, setSlaUpdatedBy] = useState("");
+const [slaUpdatedAt, setSlaUpdatedAt] = useState("");
+
   useEffect(() => {
     const savedSettings = localStorage.getItem("fraudguard-settings");
 
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings));
     }
+    loadSlaSettings();
   }, []);
 
   function handleChange(event) {
@@ -299,6 +318,139 @@ export default function SettingsPage() {
     localStorage.setItem("fraudguard-settings", JSON.stringify(defaultSettings));
     setSuccessMessage("Settings reset to default values.");
   }
+
+  async function loadSlaSettings() {
+  try {
+    setSlaLoading(true);
+    setSlaError("");
+
+    const response = await api.get("/sla-settings");
+
+    setSlaSettings({
+      criticalRiskThreshold: response.data.criticalRiskThreshold ?? 90,
+      highRiskThreshold: response.data.highRiskThreshold ?? 70,
+      mediumRiskThreshold: response.data.mediumRiskThreshold ?? 40,
+      criticalRiskSlaHours: response.data.criticalRiskSlaHours ?? 4,
+      highRiskSlaHours: response.data.highRiskSlaHours ?? 12,
+      mediumRiskSlaHours: response.data.mediumRiskSlaHours ?? 24,
+      lowRiskSlaHours: response.data.lowRiskSlaHours ?? 48,
+    });
+
+    setSlaUpdatedBy(response.data.updatedBy || "Not updated yet");
+    setSlaUpdatedAt(
+      response.data.updatedAt
+        ? new Date(response.data.updatedAt).toLocaleString()
+        : "N/A"
+    );
+  } catch (err) {
+    console.error("SLA settings load error:", err);
+    setSlaError("Failed to load SLA settings.");
+  } finally {
+    setSlaLoading(false);
+  }
+}
+
+function handleSlaSettingChange(field, value) {
+  setSlaSettings((previousSettings) => ({
+    ...previousSettings,
+    [field]: value === "" ? "" : Number(value),
+  }));
+}
+
+function validateSlaSettings() {
+  if (
+    slaSettings.criticalRiskThreshold === "" ||
+    slaSettings.highRiskThreshold === "" ||
+    slaSettings.mediumRiskThreshold === "" ||
+    slaSettings.criticalRiskSlaHours === "" ||
+    slaSettings.highRiskSlaHours === "" ||
+    slaSettings.mediumRiskSlaHours === "" ||
+    slaSettings.lowRiskSlaHours === ""
+  ) {
+    return "All SLA fields are required.";
+  }
+
+  if (
+    Number(slaSettings.criticalRiskThreshold) <=
+      Number(slaSettings.highRiskThreshold) ||
+    Number(slaSettings.highRiskThreshold) <=
+      Number(slaSettings.mediumRiskThreshold)
+  ) {
+    return "Thresholds must follow this order: Critical > High > Medium.";
+  }
+
+  if (
+    Number(slaSettings.criticalRiskSlaHours) <= 0 ||
+    Number(slaSettings.highRiskSlaHours) <= 0 ||
+    Number(slaSettings.mediumRiskSlaHours) <= 0 ||
+    Number(slaSettings.lowRiskSlaHours) <= 0
+  ) {
+    return "SLA hours must be greater than zero.";
+  }
+
+  return "";
+}
+
+async function saveSlaSettings() {
+  try {
+    setSlaSaving(true);
+    setSlaError("");
+    setSlaSuccess("");
+
+    const validationError = validateSlaSettings();
+
+    if (validationError) {
+      setSlaError(validationError);
+      return;
+    }
+
+    const response = await api.put("/sla-settings", slaSettings);
+
+    setSlaSettings({
+      criticalRiskThreshold: response.data.criticalRiskThreshold,
+      highRiskThreshold: response.data.highRiskThreshold,
+      mediumRiskThreshold: response.data.mediumRiskThreshold,
+      criticalRiskSlaHours: response.data.criticalRiskSlaHours,
+      highRiskSlaHours: response.data.highRiskSlaHours,
+      mediumRiskSlaHours: response.data.mediumRiskSlaHours,
+      lowRiskSlaHours: response.data.lowRiskSlaHours,
+    });
+
+    setSlaUpdatedBy(response.data.updatedBy || "N/A");
+    setSlaUpdatedAt(
+      response.data.updatedAt
+        ? new Date(response.data.updatedAt).toLocaleString()
+        : "N/A"
+    );
+
+    setSlaSuccess("SLA rules updated successfully.");
+    setSuccessMessage("SLA rules updated successfully.");
+  } catch (err) {
+    console.error("SLA settings save error:", err);
+
+    setSlaError(
+      err.response?.data?.message ||
+        "Failed to save SLA settings. Only ADMIN can update SLA rules."
+    );
+  } finally {
+    setSlaSaving(false);
+  }
+}
+
+function resetSlaDefaults() {
+  setSlaSettings({
+    criticalRiskThreshold: 90,
+    highRiskThreshold: 70,
+    mediumRiskThreshold: 40,
+    criticalRiskSlaHours: 4,
+    highRiskSlaHours: 12,
+    mediumRiskSlaHours: 24,
+    lowRiskSlaHours: 48,
+  });
+
+  setSlaSuccess("");
+  setSlaError("");
+}
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
@@ -393,6 +545,269 @@ export default function SettingsPage() {
               </Button>
             </Stack>
           </Box>
+
+          <Card sx={{ borderRadius: 3, mb: 3 }}>
+  <CardContent>
+    <Box
+      display="flex"
+      justifyContent="space-between"
+      alignItems="center"
+      flexWrap="wrap"
+      gap={2}
+      mb={2}
+    >
+      <Box>
+        <Typography variant="h5" fontWeight="bold">
+          Admin SLA Rule Settings
+        </Typography>
+
+        <Typography color="text.secondary" mt={0.5}>
+          Configure how long fraud cases can remain open before they become overdue.
+        </Typography>
+      </Box>
+
+      <Chip label="ADMIN ONLY" color="primary" variant="outlined" />
+    </Box>
+
+    {slaError && (
+      <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSlaError("")}>
+        {slaError}
+      </Alert>
+    )}
+
+    {slaSuccess && (
+      <Alert
+        severity="success"
+        sx={{ mb: 2 }}
+        onClose={() => setSlaSuccess("")}
+      >
+        {slaSuccess}
+      </Alert>
+    )}
+
+    {slaLoading ? (
+      <Typography color="text.secondary">Loading SLA settings...</Typography>
+    ) : (
+      <>
+        <Typography variant="h6" fontWeight="bold" mb={2}>
+          Risk Thresholds
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(3, 1fr)",
+            },
+            gap: 2,
+            mb: 3,
+          }}
+        >
+          <TextField
+            label="Critical Risk Threshold"
+            type="number"
+            value={slaSettings.criticalRiskThreshold}
+            onChange={(event) =>
+              handleSlaSettingChange(
+                "criticalRiskThreshold",
+                event.target.value
+              )
+            }
+            helperText="Example: 90 means risk score 90 and above"
+            fullWidth
+          />
+
+          <TextField
+            label="High Risk Threshold"
+            type="number"
+            value={slaSettings.highRiskThreshold}
+            onChange={(event) =>
+              handleSlaSettingChange("highRiskThreshold", event.target.value)
+            }
+            helperText="Example: 70 means risk score 70 and above"
+            fullWidth
+          />
+
+          <TextField
+            label="Medium Risk Threshold"
+            type="number"
+            value={slaSettings.mediumRiskThreshold}
+            onChange={(event) =>
+              handleSlaSettingChange("mediumRiskThreshold", event.target.value)
+            }
+            helperText="Example: 40 means risk score 40 and above"
+            fullWidth
+          />
+        </Box>
+
+        <Typography variant="h6" fontWeight="bold" mb={2}>
+          SLA Hours
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(4, 1fr)",
+            },
+            gap: 2,
+            mb: 3,
+          }}
+        >
+          <TextField
+            label="Critical Risk SLA Hours"
+            type="number"
+            value={slaSettings.criticalRiskSlaHours}
+            onChange={(event) =>
+              handleSlaSettingChange("criticalRiskSlaHours", event.target.value)
+            }
+            fullWidth
+          />
+
+          <TextField
+            label="High Risk SLA Hours"
+            type="number"
+            value={slaSettings.highRiskSlaHours}
+            onChange={(event) =>
+              handleSlaSettingChange("highRiskSlaHours", event.target.value)
+            }
+            fullWidth
+          />
+
+          <TextField
+            label="Medium Risk SLA Hours"
+            type="number"
+            value={slaSettings.mediumRiskSlaHours}
+            onChange={(event) =>
+              handleSlaSettingChange("mediumRiskSlaHours", event.target.value)
+            }
+            fullWidth
+          />
+
+          <TextField
+            label="Low Risk SLA Hours"
+            type="number"
+            value={slaSettings.lowRiskSlaHours}
+            onChange={(event) =>
+              handleSlaSettingChange("lowRiskSlaHours", event.target.value)
+            }
+            fullWidth
+          />
+        </Box>
+
+        <Card variant="outlined" sx={{ borderRadius: 3, mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" fontWeight="bold" mb={2}>
+              Current SLA Rules Preview
+            </Typography>
+
+            <Box sx={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: "14px",
+                }}
+              >
+                <thead>
+                  <tr style={{ textAlign: "left", backgroundColor: "#f1f5f9" }}>
+                    <th style={{ padding: "12px" }}>Risk Level</th>
+                    <th style={{ padding: "12px" }}>Condition</th>
+                    <th style={{ padding: "12px" }}>SLA Time</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "12px" }}>
+                      <Chip label="Critical" color="error" size="small" />
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      Risk score {slaSettings.criticalRiskThreshold} and above
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {slaSettings.criticalRiskSlaHours} hour(s)
+                    </td>
+                  </tr>
+
+                  <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "12px" }}>
+                      <Chip label="High" color="warning" size="small" />
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      Risk score {slaSettings.highRiskThreshold} to{" "}
+                      {Number(slaSettings.criticalRiskThreshold) - 1}
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {slaSettings.highRiskSlaHours} hour(s)
+                    </td>
+                  </tr>
+
+                  <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "12px" }}>
+                      <Chip label="Medium" color="primary" size="small" />
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      Risk score {slaSettings.mediumRiskThreshold} to{" "}
+                      {Number(slaSettings.highRiskThreshold) - 1}
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {slaSettings.mediumRiskSlaHours} hour(s)
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style={{ padding: "12px" }}>
+                      <Chip label="Low" color="success" size="small" />
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      Risk score below {slaSettings.mediumRiskThreshold}
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {slaSettings.lowRiskSlaHours} hour(s)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Stack direction="row" spacing={2} flexWrap="wrap">
+          <Button
+            variant="contained"
+            onClick={saveSlaSettings}
+            disabled={slaSaving}
+          >
+            {slaSaving ? "Saving..." : "Save SLA Rules"}
+          </Button>
+
+          <Button variant="outlined" onClick={resetSlaDefaults}>
+            Reset Defaults
+          </Button>
+
+          <Button variant="outlined" onClick={loadSlaSettings}>
+            Reload
+          </Button>
+        </Stack>
+
+        <Box mt={2}>
+          <Typography variant="caption" color="text.secondary">
+            Last Updated By: {slaUpdatedBy || "N/A"}
+          </Typography>
+
+          <br />
+
+          <Typography variant="caption" color="text.secondary">
+            Last Updated At: {slaUpdatedAt || "N/A"}
+          </Typography>
+        </Box>
+      </>
+    )}
+  </CardContent>
+</Card>
 
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
