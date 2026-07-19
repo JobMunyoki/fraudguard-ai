@@ -1,69 +1,124 @@
 # FraudGuard AI
 
-FraudGuard AI is an AI-powered banking fraud detection system built with Java Spring Boot, Python FastAPI, Scikit-learn, React, Material UI, and MySQL.
+FraudGuard AI is a full-stack, AI-powered banking fraud detection and investigation platform. It analyzes banking transactions, assigns fraud risk scores through a Python machine-learning service, stores results in MySQL, and provides role-based dashboards for administrators, fraud analysts, and viewers.
 
-The system analyzes banking transactions, predicts fraud risk using a machine learning service, stores transaction results in MySQL, and provides a professional fraud analyst dashboard for monitoring, reviewing, and reporting suspicious financial activity.
+> **Project status:** Portfolio-ready MVP. Local Docker deployment is complete; public cloud deployment is the next step.
 
 ---
 
-## Project Overview
+## Overview
 
-FraudGuard AI simulates a real-world fraud monitoring platform used by financial institutions to detect suspicious and fraudulent transactions.
+FraudGuard AI simulates a production-style fraud-monitoring workflow used by financial institutions:
 
-The system supports:
+```text
+Transaction submitted
+        ↓
+React frontend
+        ↓
+Spring Boot REST API
+        ↓
+FastAPI machine-learning service
+        ↓
+RandomForestClassifier prediction
+        ↓
+MySQL persistence
+        ↓
+Fraud alerts, analyst review, reports, and audit logs
+```
 
-- Transaction recording
-- AI-powered fraud prediction
-- Fraud risk scoring
-- Fraud alerts
-- Review workflow
-- Dashboard analytics
+The project demonstrates full-stack development, machine-learning integration, REST API design, authentication, role-based authorization, Docker orchestration, database persistence, and fraud-investigation workflows.
+
+---
+
+## Main Features
+
+### Fraud Detection
+
+- Record banking transactions
+- Send transaction data to the FastAPI AI service
+- Generate fraud predictions and risk scores
+- Display AI confidence, prediction source, and model used
+- Fall back to rule-based scoring when the AI service is unavailable
+- Classify transactions as `NORMAL`, `SUSPICIOUS`, or `FRAUD`
+
+### Fraud Investigation
+
+- View and search transactions
+- Filter by prediction label and review status
+- View complete transaction details in a modal
+- Review suspicious and fraudulent transactions
+- Update investigation status
+- Confirm fraud, mark false positives, or resolve cases
+- Escalate selected cases
+- View analyst workload and assigned cases
+- Track fraud alerts and flagged transaction exposure
+
+### Dashboard and Reporting
+
+- Total, normal, suspicious, and fraudulent transaction counts
+- Pending, under-review, and confirmed-fraud case counts
+- Total flagged amount
+- Average risk score
+- High-risk transaction percentage
+- Fraud analytics charts
+- Recent transactions
 - CSV report export
-- AI confidence tracking
-- Prediction source tracking
-- Model-used tracking
-- Analyst settings page
-- Transaction detail modal
-- Fraud alert detail modal
-- Audit logs
-- Client-side pagination
+
+### Authentication and Access Control
+
+- JWT-based stateless authentication
+- BCrypt password hashing
+- Role-based access control
+- Database-backed role verification on protected requests
+- Account activation and deactivation
+- Immediate rejection of disabled accounts on protected API requests
+- Automatic frontend logout when a session becomes invalid
+- Profile management
+- User password change
+- Administrator password reset
+- Password confirmation and show/hide eye controls
+
+### User Administration
+
+Administrators can:
+
+- Create users
+- Assign roles
+- Change user roles
+- Disable accounts
+- Reactivate accounts
+- Reset another user's password
+- View registered users
+- Review administrative activity through audit logs
+
+### Audit Logging
+
+FraudGuard records security and workflow events such as:
+
+```text
+USER_CREATED
+USER_ROLE_UPDATED
+USER_DISABLED
+USER_REACTIVATED
+PROFILE_UPDATED
+PASSWORD_CHANGED
+USER_PASSWORD_RESET
+TRANSACTION_REVIEW_UPDATED
+```
 
 ---
 
-## System Architecture
+## User Roles
 
-```text
-React Frontend
-     |
-     v
-Spring Boot Backend
-     |
-     v
-FastAPI AI Service
-     |
-     v
-Scikit-learn RandomForestClassifier Model
-
-Spring Boot also connects to:
-
-MySQL Database
-```
-
-### Main Flow
-
-```text
-1. User enters a transaction from the React dashboard.
-2. React sends the transaction to the Spring Boot backend.
-3. Spring Boot sends transaction details to the FastAPI AI service.
-4. FastAPI loads the trained RandomForestClassifier model.
-5. The AI service returns prediction, risk score, confidence, and model used.
-6. Spring Boot saves the transaction and prediction result in MySQL.
-7. React dashboard displays the updated transaction, fraud alert, analytics, and reports.
-```
+| Role            | Main Permissions                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `ADMIN`         | Full administrative access, user management, audit logs, analyst workload, settings, transactions, alerts, and reports |
+| `FRAUD_ANALYST` | Dashboard, transactions, fraud alerts, assigned cases, investigation actions, reports, and profile                     |
+| `VIEWER`        | Read-focused access to dashboard, reports, and profile                                                                 |
 
 ---
 
-## Tech Stack
+## Technology Stack
 
 ### Frontend
 
@@ -71,17 +126,21 @@ MySQL Database
 - Vite
 - Material UI
 - Axios
-- Recharts
 - React Router
+- Recharts
+- Nginx for the Docker production build
 
 ### Backend
 
-- Java Spring Boot
+- Java
+- Spring Boot
 - Spring Web
-- Spring Data JPA
 - Spring Security
-- MySQL Driver
-- REST APIs
+- Spring Data JPA
+- JWT authentication
+- BCrypt password hashing
+- MySQL Connector/J
+- Maven
 
 ### AI Service
 
@@ -92,91 +151,139 @@ MySQL Database
 - NumPy
 - Joblib
 - Uvicorn
+- RandomForestClassifier
 
-### Database
+### Database and Infrastructure
 
-- MySQL
-
----
-
-## Key Features
-
-## 1. Dashboard
-
-The dashboard provides a quick overview of fraud monitoring activity.
-
-Features include:
-
-- Total transactions
-- Normal transactions
-- Suspicious transactions
-- Fraud transactions
-- Pending reviews
-- Under review cases
-- Confirmed fraud cases
-- Total flagged amount
-- Average risk score
-- High-risk percentage
-- Fraud analytics charts
-- Recent transactions table
-- Add transaction form
-- AI confidence display
-- AI prediction source display
+- MySQL 8
+- Docker
+- Docker Compose
+- Docker health checks
 
 ---
 
-## 2. AI-Powered Fraud Prediction
-
-FraudGuard AI uses a Python FastAPI service with a trained Scikit-learn RandomForestClassifier model.
-
-The AI service returns:
-
-```json
-{
-  "prediction": "FRAUD",
-  "risk_score": 97.0,
-  "confidence": 0.97,
-  "model_used": "RandomForestClassifier"
-}
-```
-
-The backend stores:
-
-- Risk score
-- Prediction label
-- Confidence
-- Model used
-- Prediction source
-
-Example prediction source:
+## System Architecture
 
 ```text
-AI_SERVICE
-```
-
-If the AI service is unavailable, the backend falls back to rule-based scoring:
-
-```text
-FALLBACK_RULES
+┌───────────────────────────────┐
+│ React + Material UI Frontend  │
+│ Served by Nginx in Docker     │
+└───────────────┬───────────────┘
+                │ REST/JSON
+                ▼
+┌───────────────────────────────┐
+│ Spring Boot Backend           │
+│ Security, workflow, database  │
+└───────────┬───────────┬───────┘
+            │           │
+            │           └───────────────┐
+            ▼                           ▼
+┌───────────────────────┐   ┌────────────────────────┐
+│ MySQL Database        │   │ FastAPI AI Service     │
+│ Users and cases       │   │ Fraud prediction       │
+└───────────────────────┘   └───────────┬────────────┘
+                                        ▼
+                            ┌────────────────────────┐
+                            │ RandomForest Model     │
+                            │ fraud_model.joblib     │
+                            └────────────────────────┘
 ```
 
 ---
 
-## 3. Transactions Page
+## Project Structure
 
-The Transactions page allows fraud analysts to manage all recorded banking transactions.
+```text
+fraudguard-ai/
+│
+├── ai-service/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── model.py
+│   │   └── schemas.py
+│   ├── models/
+│   │   └── fraud_model.joblib
+│   ├── train_model.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── backend/
+│   ├── src/main/java/com/fraudguard/backend/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── dto/
+│   │   ├── entity/
+│   │   ├── repository/
+│   │   ├── service/
+│   │   └── BackendApplication.java
+│   ├── src/main/resources/
+│   │   └── application.properties
+│   ├── pom.xml
+│   ├── mvnw
+│   ├── mvnw.cmd
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── axiosConfig.js
+│   │   ├── pages/
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Transactions.jsx
+│   │   │   ├── FraudAlerts.jsx
+│   │   │   ├── AnalystWorkload.jsx
+│   │   │   ├── MyCases.jsx
+│   │   │   ├── Reports.jsx
+│   │   │   ├── AuditLogs.jsx
+│   │   │   ├── UserManagement.jsx
+│   │   │   ├── Profile.jsx
+│   │   │   └── SettingsPage.jsx
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── vite.config.js
+│   └── Dockerfile
+│
+├── database/
+├── docs/
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+└── README.md
+```
 
-Features include:
+---
 
-- View all transactions
-- Search by transaction reference, customer ID, or destination account
-- Filter by prediction label
-- Filter by review status
-- View risk score
-- View AI confidence
-- View prediction source
-- View model used
-- Update review status
+## Application Pages
+
+| Page             | Route               | Access                  |
+| ---------------- | ------------------- | ----------------------- |
+| Login            | `/login`            | Public                  |
+| Dashboard        | `/dashboard`        | Admin, Analyst, Viewer  |
+| Transactions     | `/transactions`     | Admin, Analyst          |
+| Fraud Alerts     | `/fraud-alerts`     | Admin, Analyst          |
+| Analyst Workload | `/analyst-workload` | Admin                   |
+| My Cases         | `/my-cases`         | Analyst                 |
+| Reports          | `/reports`          | Admin, Analyst, Viewer  |
+| Audit Logs       | `/audit-logs`       | Admin                   |
+| User Management  | `/users`            | Admin                   |
+| Profile          | `/profile`          | All authenticated users |
+| Settings         | `/settings`         | Admin                   |
+
+---
+
+## Transaction Workflow
+
+```text
+PENDING
+   ↓
+UNDER_REVIEW
+   ↓
+CONFIRMED_FRAUD / FALSE_POSITIVE
+   ↓
+RESOLVED
+```
 
 Supported review statuses:
 
@@ -190,384 +297,129 @@ RESOLVED
 
 ---
 
-## 4. Fraud Alerts Page
+## AI Model
 
-The Fraud Alerts page displays only transactions classified as:
+FraudGuard AI uses a Scikit-learn `RandomForestClassifier`.
 
-```text
-SUSPICIOUS
-FRAUD
-```
+The prediction pipeline uses features derived from:
 
-Features include:
-
-- Total alerts
-- Fraud alerts
-- Suspicious alerts
-- Critical risk alerts
-- Total alert exposure
-- Search alerts
-- Filter alerts
-- Review fraud cases
-- Confirm fraud
-- Mark false positive
-- Resolve alerts
-- AI confidence display
-- AI source display
-- Model used display
-
----
-
----
-
-## 5. Transaction Detail Modal
-
-The Transaction Detail Modal allows analysts to inspect a transaction without leaving the Transactions page.
-
-The modal displays:
-
-- Transaction reference
-- Customer ID
 - Transaction type
-- Destination account
 - Transaction amount
-- Old balance
-- New balance
-- Risk score
-- Prediction label
-- AI confidence
-- Prediction source
-- Model used
-- Review status
+- Old account balance
+- New account balance
+- Balance difference
+- Amount-to-balance ratio
+- Whether the transaction emptied the account
 
-This improves usability by reducing table clutter while still allowing full transaction inspection.
-
----
-
-## 6. Fraud Alert Detail Modal
-
-The Fraud Alert Detail Modal allows analysts to investigate suspicious and fraudulent transactions directly from the Fraud Alerts page.
-
-The modal displays:
-
-- Transaction information
-- Balance movement
-- Fraud investigation summary
-- Risk score
-- Prediction
-- Confidence
-- Review status
-- Prediction source
-- Model used
-
-The modal also supports analyst actions such as:
-
-- Mark under review
-- Confirm fraud
-- Mark false positive
-
-## 5. Reports Page
-
-The Reports page provides fraud analytics and exportable reporting.
-
-Features include:
-
-- Total transactions
-- Fraud transactions
-- Suspicious transactions
-- Confirmed fraud cases
-- Total flagged amount
-- Average risk score
-- High-risk percentage
-- Prediction breakdown chart
-- Review status chart
-- Transactions by type chart
-- Flagged transactions report
-- CSV export
-
-The exported CSV includes:
-
-- Transaction reference
-- Customer ID
-- Transaction type
-- Amount
-- Old balance
-- New balance
-- Risk score
-- Prediction
-- Confidence
-- Prediction source
-- Model used
-- Review status
-
----
-
-## 7. Audit Logs Page
-
-The Audit Logs page records important actions performed in the system.
-
-Current audit events include:
-
-- Transaction review status updates
-- Fraud analyst review actions
-
-Example audit log:
-
-````text
-Transaction TXN-006 review status changed from PENDING to UNDER_REVIEW
-
-## 6. Settings Page
-
-The Settings page allows configuration of system preferences.
-
-Current settings are saved in browser localStorage.
-
-Settings include:
-
-- Analyst name
-- Analyst role
-- Organization name
-- Fraud risk threshold
-- Critical risk threshold
-- Notification mode
-- Email alert toggle
-- Critical alert toggle
-- Audit logging toggle
-- Model mode
-- Session timeout
-
----
-
-## Project Structure
-
-```text
-fraudguard-ai/
-│
-├── backend/
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/com/fraudguard/backend/
-│   │       │   ├── config/
-│   │       │   ├── controller/
-│   │       │   ├── dto/
-│   │       │   ├── entity/
-│   │       │   ├── repository/
-│   │       │   ├── service/
-│   │       │   └── BackendApplication.java
-│   │       │
-│   │       └── resources/
-│   │           └── application.properties
-│   │
-│   ├── pom.xml
-│   ├── mvnw
-│   └── mvnw.cmd
-│
-├── ai-service/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── model.py
-│   │   └── schemas.py
-│   │
-│   ├── models/
-│   │   └── fraud_model.joblib
-│   │
-│   ├── train_model.py
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   │   ├── api/
-│   │   │   └── axiosConfig.js
-│   │   │
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Transactions.jsx
-│   │   │   ├── FraudAlerts.jsx
-│   │   │   ├── Reports.jsx
-│   │   │   └── SettingsPage.jsx
-│   │   │
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   │
-│   ├── package.json
-│   └── vite.config.js
-│
-├── database/
-├── docs/
-├── README.md
-├── .gitignore
-└── docker-compose.yml
-````
-
----
-
-## Backend API Endpoints
-
-### Health Check
-
-```http
-GET /api/health
-```
-
-Example response:
+The AI service returns:
 
 ```json
 {
-  "service": "FraudGuard AI Backend",
-  "status": "UP",
-  "message": "Backend is running successfully"
-}
-```
-
----
-
-### Get All Transactions
-
-```http
-GET /api/transactions
-```
-
-Returns all transactions.
-
----
-
-### Create Transaction
-
-```http
-POST /api/transactions
-```
-
-Creates a new transaction and sends it to the AI service for fraud prediction.
-
-Example request:
-
-```json
-{
-  "transactionReference": "TXN-006",
-  "customerId": "CUST-1006",
-  "transactionType": "CASH_OUT",
-  "amount": 300000,
-  "oldBalance": 120000,
-  "newBalance": 0,
-  "destinationAccount": "ACC-9006"
-}
-```
-
-Example response:
-
-```json
-{
-  "id": 6,
-  "transactionReference": "TXN-006",
-  "customerId": "CUST-1006",
-  "transactionType": "CASH_OUT",
-  "amount": 300000,
-  "oldBalance": 120000,
-  "newBalance": 0,
-  "destinationAccount": "ACC-9006",
-  "riskScore": 97.0,
+  "prediction": "FRAUD",
+  "risk_score": 97.0,
   "confidence": 0.97,
-  "modelUsed": "RandomForestClassifier",
-  "predictionSource": "AI_SERVICE",
-  "predictionLabel": "FRAUD",
-  "reviewStatus": "PENDING"
+  "model_used": "RandomForestClassifier"
 }
 ```
 
----
-
-### Get Flagged Transactions
-
-```http
-GET /api/transactions/flagged
-```
-
-Returns only suspicious and fraud transactions.
-
----
-
-### Get Transaction by ID
-
-```http
-GET /api/transactions/{id}
-```
-
-Example:
-
-```http
-GET /api/transactions/6
-```
-
----
-
-### Update Review Status
-
-```http
-PUT /api/transactions/{id}/review-status?status=UNDER_REVIEW
-```
-
-Example:
-
-```http
-PUT /api/transactions/6/review-status?status=CONFIRMED_FRAUD
-```
-
-Supported statuses:
+The backend also records the prediction source:
 
 ```text
-PENDING
-UNDER_REVIEW
-CONFIRMED_FRAUD
-FALSE_POSITIVE
-RESOLVED
+AI_SERVICE
 ```
+
+If the AI service is unavailable, the backend can use:
+
+```text
+FALLBACK_RULES
+```
+
+### Demo Risk Categories
+
+```text
+0–39     NORMAL
+40–69    SUSPICIOUS
+70–100   FRAUD
+```
+
+These thresholds are intended for demonstration and portfolio use, not for real banking decisions.
 
 ---
 
-### Dashboard Stats
+## API Overview
+
+All protected backend endpoints require:
 
 ```http
-GET /api/dashboard/stats
+Authorization: Bearer <JWT_TOKEN>
 ```
 
-Example response:
+### Authentication
 
-```json
-{
-  "totalTransactions": 6,
-  "normalTransactions": 0,
-  "suspiciousTransactions": 1,
-  "fraudTransactions": 5,
-  "pendingReviews": 3,
-  "underReviewCases": 2,
-  "confirmedFraudCases": 1,
-  "totalFlaggedAmount": 1135000.0,
-  "averageRiskScore": 89.0,
-  "highRiskPercentage": 100.0
-}
+```http
+POST /api/auth/login
+POST /api/auth/register
 ```
 
----
-
-## AI Service Endpoints
-
-### Root
+### Health
 
 ```http
 GET /
+GET /api/health
 ```
 
-Example response:
+### Transactions
 
-```json
-{
-  "service": "FraudGuard AI Service",
-  "status": "UP",
-  "message": "AI service is running successfully"
-}
+```http
+GET  /api/transactions
+POST /api/transactions
+GET  /api/transactions/{id}
+GET  /api/transactions/flagged
+PUT  /api/transactions/{id}/review-status
+PUT  /api/transactions/{id}/escalate
 ```
+
+### Dashboard
+
+```http
+GET /api/dashboard/stats
+GET /api/dashboard/sla-summary
+GET /api/dashboard/sla-cases
+```
+
+### Profile and Password
+
+```http
+GET /api/profile/me
+PUT /api/profile/me
+PUT /api/profile/change-password
+```
+
+### User Management
+
+```http
+GET  /api/users
+POST /api/users
+GET  /api/users/analysts
+PUT  /api/users/{userId}/role
+PUT  /api/users/{userId}/status
+PUT  /api/users/{userId}/password
+```
+
+### Administration
+
+```http
+GET /api/audit-logs
+GET /api/analyst-workload
+GET /api/sla-settings
+PUT /api/sla-settings
+```
+
+Endpoint details may evolve as the project is upgraded.
 
 ---
+
+## FastAPI Endpoints
 
 ### Health Check
 
@@ -584,9 +436,7 @@ Example response:
 }
 ```
 
----
-
-### Prediction
+### Fraud Prediction
 
 ```http
 POST /predict
@@ -603,18 +453,7 @@ Example request:
 }
 ```
 
-Example response:
-
-```json
-{
-  "prediction": "FRAUD",
-  "risk_score": 97.0,
-  "confidence": 0.97,
-  "model_used": "RandomForestClassifier"
-}
-```
-
-FastAPI documentation is available at:
+Interactive FastAPI documentation is available locally at:
 
 ```text
 http://localhost:8000/docs
@@ -622,166 +461,130 @@ http://localhost:8000/docs
 
 ---
 
-## How to Run the Project
+## Run with Docker
 
-FraudGuard AI has three services that must run at the same time:
+### Prerequisites
+
+Install:
+
+- Git
+- Docker Desktop
+- Docker Compose
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/JobMunyoki/fraudguard-ai
+cd fraudguard-ai
+```
+
+### 2. Create the environment file
+
+Copy the example file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+On Linux or macOS:
+
+```bash
+cp .env.example .env
+```
+
+Set secure local values in `.env`. Do not commit that file.
+
+Typical variables include:
+
+```env
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/fraudguard?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+SPRING_DATASOURCE_USERNAME=fraudguard
+SPRING_DATASOURCE_PASSWORD=replace_with_a_secure_password
+AI_SERVICE_URL=http://ai-service:8000
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRATION_MS=86400000
+```
+
+### 3. Build and start the services
+
+```bash
+docker compose up -d --build
+```
+
+### 4. Check service status
+
+```bash
+docker compose ps
+```
+
+### 5. Open the services
 
 ```text
-AI Service:     http://localhost:8000
-Backend:        http://localhost:8080
-Frontend:       http://localhost:5173
+Frontend:        http://localhost:5173
+Backend:         http://localhost:8080
+Backend health:  http://localhost:8080/api/health
+AI service:      http://localhost:8000
+AI API docs:     http://localhost:8000/docs
+MySQL host port: 3307
 ```
+
+### 6. View logs
+
+```bash
+docker compose logs -f
+```
+
+Backend only:
+
+```bash
+docker logs fraudguard-backend --tail 100
+```
+
+### 7. Stop the project
+
+```bash
+docker compose down
+```
+
+To remove the database volume as well:
+
+```bash
+docker compose down -v
+```
+
+> Running `docker compose down -v` deletes the local Docker database data.
 
 ---
 
-## 1. Run the AI Service
+## Manual Development Setup
 
-Open a terminal:
+Docker is the recommended way to run the complete project. The services can also be run separately for development.
+
+### AI Service
 
 ```powershell
-cd C:\Users\Administrator\Documents\fraudguard-ai\ai-service
+cd ai-service
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open:
+### Backend
 
-```text
-http://localhost:8000/health
-```
-
-You should see:
-
-```json
-{
-  "status": "UP",
-  "service": "FraudGuard AI Service"
-}
-```
-
-FastAPI documentation:
-
-```text
-http://localhost:8000/docs
-```
-
----
-
-## 2. Run the Spring Boot Backend
-
-Open another terminal:
+Configure the database and environment variables, then run:
 
 ```powershell
-cd C:\Users\Administrator\Documents\fraudguard-ai\backend
-cmd /c mvnw.cmd spring-boot:run
+cd backend
+.\mvnw.cmd spring-boot:run
 ```
 
-Open:
-
-```text
-http://localhost:8080/api/health
-```
-
-You should see:
-
-```json
-{
-  "service": "FraudGuard AI Backend",
-  "status": "UP",
-  "message": "Backend is running successfully"
-}
-```
-
----
-
-## 3. Run the React Frontend
-
-Open another terminal:
+### Frontend
 
 ```powershell
-cd C:\Users\Administrator\Documents\fraudguard-ai\frontend
+cd frontend
+npm install
 npm run dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
-
-The app should redirect to:
-
-```text
-http://localhost:5173/dashboard
-```
-
----
-
-## MySQL Configuration
-
-The backend uses MySQL.
-
-Create the database:
-
-```sql
-CREATE DATABASE fraudguard_ai;
-```
-
-Example Spring Boot configuration:
-
-```properties
-spring.application.name=backend
-
-server.port=8080
-
-spring.datasource.url=jdbc:mysql://localhost:3306/fraudguard_ai?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-spring.datasource.username=root
-spring.datasource.password=YOUR_PASSWORD
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-
-ai.service.url=http://localhost:8000
-```
-
-Important:
-
-Do not push your real MySQL password to GitHub. Replace it with a placeholder or environment variable before pushing.
-
----
-
-## AI Model Explanation
-
-The AI service uses a Scikit-learn RandomForestClassifier.
-
-The model uses transaction features such as:
-
-- Transaction type
-- Amount
-- Old balance
-- New balance
-- Balance difference
-- Amount-to-balance ratio
-- Whether the transaction emptied the account
-
-The model predicts whether a transaction is likely fraud or not.
-
-Prediction categories:
-
-```text
-NORMAL
-SUSPICIOUS
-FRAUD
-```
-
-Risk score thresholds:
-
-```text
-0 - 39      NORMAL
-40 - 69     SUSPICIOUS
-70 - 100    FRAUD
 ```
 
 ---
@@ -790,129 +593,154 @@ Risk score thresholds:
 
 ```json
 {
-  "transactionReference": "TXN-006",
-  "customerId": "CUST-1006",
-  "transactionType": "CASH_OUT",
-  "amount": 300000,
-  "oldBalance": 120000,
-  "newBalance": 0,
-  "destinationAccount": "ACC-9006"
+  "transactionReference": "TXN-1001",
+  "customerId": "CUST-001",
+  "transactionType": "TRANSFER",
+  "amount": 95000,
+  "oldBalance": 100000,
+  "newBalance": 5000,
+  "destinationAccount": "ACC-98765"
 }
 ```
 
-Expected AI result:
-
-```text
-Prediction: FRAUD
-Confidence: 97.0%
-Source: AI_SERVICE
-Model Used: RandomForestClassifier
-```
+The exact result depends on the trained model and feature pipeline.
 
 ---
 
-## Frontend Pages
+## Security Measures
 
-### Dashboard
+The current MVP includes:
 
-```text
-/dashboard
-```
+- JWT authentication
+- Stateless Spring Security configuration
+- BCrypt password hashing
+- Role-based endpoint authorization
+- CORS configuration
+- Account activation and deactivation
+- Database status checks during JWT authentication
+- Disabled-account session rejection
+- Password confirmation
+- User and administrator password-management flows
+- Audit logging for important account events
+- Environment-file exclusion through `.gitignore`
 
-Main fraud monitoring overview.
-
-### Transactions
-
-```text
-/transactions
-```
-
-Full transaction management table.
-
-### Fraud Alerts
-
-```text
-/fraud-alerts
-```
-
-Suspicious and fraud-only alerts.
-
-### Reports
+Never commit:
 
 ```text
-/reports
+.env
+database passwords
+JWT secrets
+email credentials
+API keys
+private certificates
 ```
-
-Fraud analytics and CSV export.
-
-### Settings
-
-```text
-/settings
-```
-
-System settings and preferences.
 
 ---
 
 ## Screenshots
 
-Add screenshots here after saving them in the docs folder.
+Add final screenshots to:
 
-Example:
+```text
+docs/screenshots/
+```
+
+Recommended screenshots:
+
+- Login page
+- Dashboard
+- Add transaction form
+- Transactions page
+- Fraud Alerts page
+- Analyst Workload page
+- My Cases page
+- Reports page
+- Audit Logs page
+- User Management page
+- Profile and password-management page
+
+After adding the files, enable links such as:
 
 ```md
-![Dashboard](docs/dashboard.png)
-![Transactions](docs/transactions.png)
-![Fraud Alerts](docs/fraud-alerts.png)
-![Reports](docs/reports.png)
-![Settings](docs/settings.png)
+![Dashboard](docs/screenshots/dashboard.png)
+![Transactions](docs/screenshots/transactions.png)
+![Fraud Alerts](docs/screenshots/fraud-alerts.png)
+![User Management](docs/screenshots/user-management.png)
 ```
+
+---
+
+## Deployment Status
+
+Public deployment is being prepared.
+
+After deployment, replace this section with the real URLs:
+
+```text
+Frontend:       REPLACE_WITH_FRONTEND_URL
+Backend health: REPLACE_WITH_BACKEND_HEALTH_URL
+AI API docs:    REPLACE_WITH_AI_DOCS_URL
+```
+
+Do not publish real administrator credentials. Create dedicated demo accounts with fictional data.
 
 ---
 
 ## Current Limitations
 
-This project currently uses a small demo training dataset for the AI model.
-
-For a production-level system, the model should be trained on a larger real-world fraud dataset with proper validation.
-
-Other current limitations:
-
-- Authentication is not fully implemented yet
-- Settings are saved in localStorage
-- No role-based access control yet
-- No pagination yet
-- No production deployment configuration yet
-- No Docker setup finalized yet
-- No user management yet
+- The machine-learning model uses a limited demonstration dataset.
+- The project is not designed or certified for real banking use.
+- Settings are still stored partly in browser `localStorage`.
+- Password changes and administrator resets do not yet invalidate every previously issued JWT.
+- Two-factor authentication and forgot-password email recovery are not yet implemented.
+- Explainable-AI output, model drift monitoring, and model governance are not yet implemented.
+- Automated test coverage and production observability still need expansion.
+- Public cloud deployment URLs have not yet been added.
 
 ---
 
-## Future Improvements
+## Planned Improvements
 
-Planned improvements include:
-
-- JWT authentication
-- Role-based access control
-- Real banking fraud dataset integration
-- Model retraining pipeline
-- Audit logs
-- Pagination
-- Transaction CSV upload
+- Force password change after administrator reset
+- JWT token versioning and “log out all sessions”
+- Forgot-password email workflow
+- Two-factor authentication
+- Failed-login lockout and login history
+- Explainable AI using SHAP
+- Model monitoring and model versioning
+- Fraud-model retraining pipeline
+- Bulk CSV transaction upload
+- Investigation notes and evidence attachments
 - PDF report export
-- Email notifications
-- Docker Compose setup
-- Cloud deployment
-- Backend settings API
-- User management
-- Model monitoring
-- Fraud case notes
-- Transaction detail modal
+- Database migrations with Flyway
+- OpenAPI documentation for Spring Boot
+- Unit, integration, and frontend tests
+- GitHub Actions CI/CD
+- Rate limiting, structured logging, and production monitoring
+
+---
+
+## Portfolio Value
+
+FraudGuard AI demonstrates:
+
+- Full-stack application architecture
+- AI service integration
+- Secure REST API development
+- Role-based authorization
+- Relational database design
+- Dockerized microservice deployment
+- Administrative user management
+- Fraud investigation workflows
+- Reporting and auditability
 
 ---
 
 ## Author
 
 **Job Munyoki**
-Full-stack developer focused on AI, cybersecurity, fintech systems, and data-driven applications.
+
+Full-stack developer focused on artificial intelligence, cybersecurity, fintech systems, and data-driven applications.
+
+- GitHub: `https://github.com/JobMunyoki`
+- Portfolio: `https://jobmunyoki.vercel.app`
