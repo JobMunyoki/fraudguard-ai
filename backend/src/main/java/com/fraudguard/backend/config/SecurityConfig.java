@@ -16,6 +16,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+
+import java.util.Arrays;
+
 @Configuration
 public class SecurityConfig {
 
@@ -134,7 +138,10 @@ public class SecurityConfig {
                 CorsConfiguration configuration = new CorsConfiguration();
 
                 configuration.setAllowedOrigins(
-                                List.of("http://localhost:5173"));
+                                Arrays.stream(frontendUrl.split(","))
+                                                .map(String::trim)
+                                                .filter(origin -> !origin.isBlank())
+                                                .toList());
 
                 configuration.setAllowedMethods(
                                 List.of(
@@ -159,4 +166,7 @@ public class SecurityConfig {
 
                 return source;
         }
+
+        @Value("${app.frontend.url:http://localhost:5173}")
+        private String frontendUrl;
 }

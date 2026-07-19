@@ -2,7 +2,7 @@
 
 FraudGuard AI is a full-stack, AI-powered banking fraud detection and investigation platform. It analyzes banking transactions, assigns fraud risk scores through a Python machine-learning service, stores results in MySQL, and provides role-based dashboards for administrators, fraud analysts, and viewers.
 
-> **Project status:** Portfolio-ready MVP. Local Docker deployment is complete; public cloud deployment is the next step.
+> **Project status:** Local Docker deployment is complete.
 
 ---
 
