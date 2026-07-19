@@ -9,9 +9,12 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Container,
   Divider,
   Drawer,
+  IconButton,
+  InputAdornment,
   List,
   ListItem,
   ListItemButton,
@@ -33,6 +36,8 @@ import {
   Person,
   ReceiptLong,
   Settings,
+  Visibility,
+  VisibilityOff,
 } from "@mui/icons-material";
 import api from "../api/axiosConfig";
 
@@ -175,6 +180,11 @@ export default function Profile() {
   const [fullName, setFullName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -208,20 +218,52 @@ export default function Profile() {
 
   async function changePassword(event) {
     event.preventDefault();
+    setError("");
+
+    if (newPassword.length < 8) {
+      setError("New password must contain at least 8 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("New password and confirmation password do not match.");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setError("New password must be different from the current password.");
+      return;
+    }
 
     try {
-      await api.put("/profile/change-password", {
+      setChangingPassword(true);
+
+      const response = await api.put("/profile/change-password", {
         currentPassword,
         newPassword,
+        confirmPassword,
       });
 
       setCurrentPassword("");
       setNewPassword("");
-      setSuccessMessage("Password changed successfully.");
-      setError("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setSuccessMessage(
+        response.data?.message || "Password changed successfully."
+      );
     } catch (err) {
       console.error(err);
-      setError("Failed to change password. Check your current password.");
+
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        (typeof err.response?.data === "string" ? err.response.data : null);
+
+      setError(message || "Failed to change password.");
+    } finally {
+      setChangingPassword(false);
     }
   }
 
@@ -353,34 +395,155 @@ export default function Profile() {
 
             <Card sx={{ borderRadius: 3 }}>
               <CardContent>
-                <Typography variant="h6" fontWeight="bold" mb={2}>
+                <Typography variant="h6" fontWeight="bold">
                   Change Password
+                </Typography>
+
+                <Typography color="text.secondary" mt={0.5} mb={2}>
+                  Enter your current password, then choose a new password.
+                  Use the eye icons to show or hide each password.
                 </Typography>
 
                 <Box component="form" onSubmit={changePassword}>
                   <TextField
                     label="Current Password"
-                    type="password"
+                    type={showCurrentPassword ? "text" : "password"}
                     fullWidth
                     value={currentPassword}
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     sx={{ mb: 2 }}
                     required
+                    autoComplete="current-password"
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              type="button"
+                              edge="end"
+                              onClick={() =>
+                                setShowCurrentPassword((visible) => !visible)
+                              }
+                              onMouseDown={(event) => event.preventDefault()}
+                              aria-label={
+                                showCurrentPassword
+                                  ? "Hide current password"
+                                  : "Show current password"
+                              }
+                            >
+                              {showCurrentPassword ? (
+                                <VisibilityOff />
+                              ) : (
+                                <Visibility />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
                   />
 
                   <TextField
                     label="New Password"
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
                     fullWidth
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
                     sx={{ mb: 2 }}
                     required
-                    helperText="Minimum 6 characters"
+                    autoComplete="new-password"
+                    helperText="Minimum 8 characters and different from your current password"
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              type="button"
+                              edge="end"
+                              onClick={() =>
+                                setShowNewPassword((visible) => !visible)
+                              }
+                              onMouseDown={(event) => event.preventDefault()}
+                              aria-label={
+                                showNewPassword
+                                  ? "Hide new password"
+                                  : "Show new password"
+                              }
+                            >
+                              {showNewPassword ? (
+                                <VisibilityOff />
+                              ) : (
+                                <Visibility />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
                   />
 
-                  <Button type="submit" variant="contained" color="warning">
-                    Change Password
+                  <TextField
+                    label="Confirm New Password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    fullWidth
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    sx={{ mb: 2 }}
+                    required
+                    autoComplete="new-password"
+                    error={
+                      confirmPassword.length > 0 &&
+                      confirmPassword !== newPassword
+                    }
+                    helperText={
+                      confirmPassword.length > 0 &&
+                      confirmPassword !== newPassword
+                        ? "Passwords do not match"
+                        : "Enter the new password again"
+                    }
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              type="button"
+                              edge="end"
+                              onClick={() =>
+                                setShowConfirmPassword((visible) => !visible)
+                              }
+                              onMouseDown={(event) => event.preventDefault()}
+                              aria-label={
+                                showConfirmPassword
+                                  ? "Hide confirmation password"
+                                  : "Show confirmation password"
+                              }
+                            >
+                              {showConfirmPassword ? (
+                                <VisibilityOff />
+                              ) : (
+                                <Visibility />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                  />
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="warning"
+                    disabled={changingPassword}
+                    startIcon={
+                      changingPassword ? (
+                        <CircularProgress size={18} color="inherit" />
+                      ) : null
+                    }
+                  >
+                    {changingPassword
+                      ? "Changing Password..."
+                      : "Change Password"}
                   </Button>
                 </Box>
               </CardContent>

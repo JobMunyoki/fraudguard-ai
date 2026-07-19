@@ -1,6 +1,7 @@
 package com.fraudguard.backend.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,21 +25,31 @@ public class AppUser {
     @Column(nullable = false)
     private Role role;
 
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private boolean active = true;
+
     private LocalDateTime createdAt;
 
     public AppUser() {
     }
 
-    public AppUser(String fullName, String email, String password, Role role) {
+    public AppUser(
+            String fullName,
+            String email,
+            String password,
+            Role role) {
         this.fullName = fullName;
         this.email = email;
         this.password = password;
         this.role = role;
+        this.active = true;
     }
 
     @PrePersist
     public void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
     }
 
     public Long getId() {
@@ -75,6 +86,14 @@ public class AppUser {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {

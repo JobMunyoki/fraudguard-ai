@@ -5,9 +5,11 @@ import com.fraudguard.backend.dto.profile.ProfileResponse;
 import com.fraudguard.backend.dto.profile.UpdateProfileRequest;
 import com.fraudguard.backend.entity.AppUser;
 import com.fraudguard.backend.repository.AppUserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ProfileService {
@@ -35,8 +37,11 @@ public class ProfileService {
 
         String oldName = currentUser.getFullName();
 
-        if (request.getFullName() == null || request.getFullName().trim().isEmpty()) {
-            throw new RuntimeException("Full name is required.");
+        if (request.getFullName() == null
+                || request.getFullName().trim().isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Full name is required.");
         }
 
         currentUser.setFullName(request.getFullName().trim());
@@ -58,23 +63,32 @@ public class ProfileService {
     public void changePassword(ChangePasswordRequest request) {
         AppUser currentUser = getCurrentUser();
 
-        if (request.getCurrentPassword() == null || request.getNewPassword() == null) {
-            throw new RuntimeException("Current password and new password are required.");
-        }
-
         boolean currentPasswordMatches = passwordEncoder.matches(
                 request.getCurrentPassword(),
                 currentUser.getPassword());
 
         if (!currentPasswordMatches) {
-            throw new RuntimeException("Current password is incorrect.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Current password is incorrect.");
         }
 
-        if (request.getNewPassword().length() < 6) {
-            throw new RuntimeException("New password must be at least 6 characters.");
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "New password and confirmation password do not match.");
         }
 
-        currentUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        if (passwordEncoder.matches(
+                request.getNewPassword(),
+                currentUser.getPassword())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "New password must be different from the current password.");
+        }
+
+        currentUser.setPassword(
+                passwordEncoder.encode(request.getNewPassword()));
 
         appUserRepository.save(currentUser);
 
@@ -92,6 +106,8 @@ public class ProfileService {
                 .getName();
 
         return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Current user not found."));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Current user not found."));
     }
 }

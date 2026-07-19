@@ -11,6 +11,7 @@ public class AppUserResponse {
     private String fullName;
     private String email;
     private Role role;
+    private boolean active;
     private LocalDateTime createdAt;
 
     public AppUserResponse() {
@@ -21,6 +22,7 @@ public class AppUserResponse {
         this.fullName = user.getFullName();
         this.email = user.getEmail();
         this.role = user.getRole();
+        this.active = user.isActive();
         this.createdAt = user.getCreatedAt();
     }
 
@@ -38,6 +40,10 @@ public class AppUserResponse {
 
     public Role getRole() {
         return role;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public LocalDateTime getCreatedAt() {

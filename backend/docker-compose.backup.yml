@@ -1,0 +1,77 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: fraudguard-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - fraudguard_mysql_data:/var/lib/mysql
+    networks:
+      - fraudguard-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: fraudguard-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - fraudguard-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fraudguard-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - ai-service
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      AI_SERVICE_URL: ${AI_SERVICE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      FRAUDGUARD_ESCALATION_RECIPIENT: ${FRAUDGUARD_ESCALATION_RECIPIENT}
+
+      AFRICASTALKING_SMS_ENABLED: ${AFRICASTALKING_SMS_ENABLED}
+      AFRICASTALKING_BASE_URL: ${AFRICASTALKING_BASE_URL}
+      AFRICASTALKING_USERNAME: ${AFRICASTALKING_USERNAME}
+      AFRICASTALKING_API_KEY: ${AFRICASTALKING_API_KEY}
+      FRAUDGUARD_SMS_RECIPIENT: ${FRAUDGUARD_SMS_RECIPIENT}
+      AFRICASTALKING_SENDER_ID: ${AFRICASTALKING_SENDER_ID}
+    ports:
+      - "8080:8080"
+    networks:
+      - fraudguard-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fraudguard-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    networks:
+      - fraudguard-network
+
+volumes:
+  fraudguard_mysql_data:
+
+networks:
+  fraudguard-network:
+    driver: bridge

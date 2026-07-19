@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -21,31 +22,63 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+  const sessionMessage = sessionStorage.getItem(
+    "fraudguard_auth_message"
+  );
+
+  if (sessionMessage) {
+    setError(sessionMessage);
+
+    sessionStorage.removeItem(
+      "fraudguard_auth_message"
+    );
+  }
+}, []);
+
   async function handleLogin(event) {
-    event.preventDefault();
+  event.preventDefault();
+  setError("");
 
-    try {
-      setLoading(true);
-      setError("");
+  try {
+    const response = await api.post("/auth/login", {
+      email,
+      password,
+    });
 
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      });
+    localStorage.setItem("fraudguard_token", response.data.token);
+    localStorage.setItem(
+      "fraudguard_fullName",
+      response.data.fullName
+    );
+    localStorage.setItem(
+      "fraudguard_email",
+      response.data.email
+    );
+    localStorage.setItem(
+      "fraudguard_role",
+      response.data.role
+    );
 
-      localStorage.setItem("fraudguard_token", response.data.token);
-      localStorage.setItem("fraudguard_fullName", response.data.fullName);
-      localStorage.setItem("fraudguard_email", response.data.email);
-      localStorage.setItem("fraudguard_role", response.data.role);
+    navigate("/dashboard");
+  } catch (err) {
+    console.error("Login failed:", err);
 
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      setError("Invalid email or password.");
-    } finally {
-      setLoading(false);
+    const backendMessage =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      err.response?.data?.error;
+
+    if (err.response?.status === 403) {
+      setError(
+        backendMessage ||
+          "This account has been disabled. Contact an administrator."
+      );
+    } else {
+      setError(backendMessage || "Invalid email or password.");
     }
   }
+}
 
   return (
     <Box

@@ -4,6 +4,7 @@ import com.fraudguard.backend.dto.profile.ChangePasswordRequest;
 import com.fraudguard.backend.dto.profile.ProfileResponse;
 import com.fraudguard.backend.dto.profile.UpdateProfileRequest;
 import com.fraudguard.backend.service.ProfileService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +34,7 @@ public class ProfileController {
 
     @PutMapping("/change-password")
     public ResponseEntity<Map<String, String>> changePassword(
-            @RequestBody ChangePasswordRequest request) {
+            @Valid @RequestBody ChangePasswordRequest request) {
         profileService.changePassword(request);
 
         return ResponseEntity.ok(

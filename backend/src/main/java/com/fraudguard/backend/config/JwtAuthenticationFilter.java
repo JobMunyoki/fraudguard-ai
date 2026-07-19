@@ -31,6 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        return path.startsWith("/api/auth/")
+                || path.equals("/api/health")
+                || path.equals("/");
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -48,28 +57,102 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String email = jwtService.extractEmail(token);
 
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                AppUser user = appUserRepository.findByEmail(email).orElse(null);
+            if (email == null || email.isBlank()) {
+                SecurityContextHolder.clearContext();
 
-                if (user != null && jwtService.isTokenValid(token, user)) {
-                    List<SimpleGrantedAuthority> authorities = List.of(
-                            new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
-
-                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                            user.getEmail(),
-                            null,
-                            authorities);
-
-                    authenticationToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                }
+                writeJsonError(
+                        response,
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "TOKEN_INVALID",
+                        "Your session is invalid. Please sign in again.");
+                return;
             }
-        } catch (Exception ignored) {
-            // Invalid token: user will remain unauthenticated
-        }
 
-        filterChain.doFilter(request, response);
+            AppUser user = appUserRepository.findByEmail(email)
+                    .orElse(null);
+
+            if (user == null) {
+                SecurityContextHolder.clearContext();
+
+                writeJsonError(
+                        response,
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "USER_NOT_FOUND",
+                        "This user account no longer exists.");
+                return;
+            }
+
+            if (!user.isActive()) {
+                SecurityContextHolder.clearContext();
+
+                writeJsonError(
+                        response,
+                        HttpServletResponse.SC_FORBIDDEN,
+                        "ACCOUNT_DISABLED",
+                        "Your account has been disabled. Contact an administrator.");
+                return;
+            }
+
+            if (!jwtService.isTokenValid(token, user)) {
+                SecurityContextHolder.clearContext();
+
+                writeJsonError(
+                        response,
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "TOKEN_INVALID",
+                        "Your session has expired or is invalid. Please sign in again.");
+                return;
+            }
+
+            if (SecurityContextHolder
+                    .getContext()
+                    .getAuthentication() == null) {
+
+                List<SimpleGrantedAuthority> authorities = List.of(
+                        new SimpleGrantedAuthority(
+                                "ROLE_" + user.getRole().name()));
+
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        user.getEmail(),
+                        null,
+                        authorities);
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource()
+                                .buildDetails(request));
+
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(authentication);
+            }
+
+            filterChain.doFilter(request, response);
+
+        } catch (Exception exception) {
+            SecurityContextHolder.clearContext();
+
+            writeJsonError(
+                    response,
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "TOKEN_INVALID",
+                    "Your session has expired or is invalid. Please sign in again.");
+        }
+    }
+
+    private void writeJsonError(
+            HttpServletResponse response,
+            int status,
+            String code,
+            String message) throws IOException {
+
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        response.getWriter().write(
+                "{"
+                        + "\"code\":\"" + code + "\","
+                        + "\"message\":\"" + message + "\""
+                        + "}");
     }
 }

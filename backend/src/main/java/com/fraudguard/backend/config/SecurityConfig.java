@@ -2,6 +2,7 @@ package com.fraudguard.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,43 +21,102 @@ public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        public SecurityConfig(
+                        JwtAuthenticationFilter jwtAuthenticationFilter) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         }
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        public SecurityFilterChain securityFilterChain(
+                        HttpSecurity http) throws Exception {
+
                 http
                                 .cors(Customizer.withDefaults())
                                 .csrf(csrf -> csrf.disable())
+
                                 .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                                .sessionCreationPolicy(
+                                                                SessionCreationPolicy.STATELESS))
+
+                                .exceptionHandling(exceptions -> exceptions
+
+                                                .authenticationEntryPoint(
+                                                                (request, response, exception) -> {
+                                                                        response.setStatus(401);
+                                                                        response.setContentType(
+                                                                                        "application/json");
+                                                                        response.setCharacterEncoding("UTF-8");
+
+                                                                        response.getWriter().write(
+                                                                                        "{"
+                                                                                                        + "\"code\":\"AUTHENTICATION_REQUIRED\","
+                                                                                                        + "\"message\":\"Authentication is required.\""
+                                                                                                        + "}");
+                                                                })
+
+                                                .accessDeniedHandler(
+                                                                (request, response, exception) -> {
+                                                                        response.setStatus(403);
+                                                                        response.setContentType(
+                                                                                        "application/json");
+                                                                        response.setCharacterEncoding("UTF-8");
+
+                                                                        response.getWriter().write(
+                                                                                        "{"
+                                                                                                        + "\"code\":\"ACCESS_DENIED\","
+                                                                                                        + "\"message\":\"You do not have permission to perform this action.\""
+                                                                                                        + "}");
+                                                                }))
+
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**").permitAll()
-                                                .requestMatchers("/api/health").permitAll()
 
-                                                .requestMatchers("/api/dashboard/sla-summary")
-                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST")
-                                                .requestMatchers("/api/dashboard/sla-cases")
-                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST")
+                                                .requestMatchers(
+                                                                "/",
+                                                                "/api/health",
+                                                                "/api/auth/**")
+                                                .permitAll()
+
+                                                .requestMatchers(
+                                                                "/api/dashboard/sla-summary",
+                                                                "/api/dashboard/sla-cases")
+                                                .hasAnyRole(
+                                                                "ADMIN",
+                                                                "FRAUD_ANALYST")
+
                                                 .requestMatchers("/api/dashboard/**")
-                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST", "VIEWER")
+                                                .hasAnyRole(
+                                                                "ADMIN",
+                                                                "FRAUD_ANALYST",
+                                                                "VIEWER")
 
-                                                .requestMatchers("/api/users/**").hasRole("ADMIN")
-                                                .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
-                                                .requestMatchers("/api/analyst-workload/**").hasRole("ADMIN")
+                                                .requestMatchers("/api/users/**")
+                                                .hasRole("ADMIN")
 
-                                                .requestMatchers(org.springframework.http.HttpMethod.PUT,
+                                                .requestMatchers("/api/audit-logs/**")
+                                                .hasRole("ADMIN")
+
+                                                .requestMatchers("/api/analyst-workload/**")
+                                                .hasRole("ADMIN")
+
+                                                .requestMatchers(
+                                                                HttpMethod.PUT,
                                                                 "/api/transactions/*/escalate")
                                                 .hasRole("ADMIN")
+
                                                 .requestMatchers("/api/transactions/**")
-                                                .hasAnyRole("ADMIN", "FRAUD_ANALYST")
+                                                .hasAnyRole(
+                                                                "ADMIN",
+                                                                "FRAUD_ANALYST")
 
-                                                .requestMatchers("/api/profile/**").authenticated()
+                                                .requestMatchers("/api/profile/**")
+                                                .authenticated()
 
-                                                .requestMatchers("/api/sla-settings/**").hasRole("ADMIN")
+                                                .requestMatchers("/api/sla-settings/**")
+                                                .hasRole("ADMIN")
 
-                                                .anyRequest().authenticated())
+                                                .anyRequest()
+                                                .authenticated())
+
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,
                                                 UsernamePasswordAuthenticationFilter.class);
@@ -73,13 +133,29 @@ public class SecurityConfig {
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
 
-                configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-                configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+                configuration.setAllowedOrigins(
+                                List.of("http://localhost:5173"));
+
+                configuration.setAllowedMethods(
+                                List.of(
+                                                "GET",
+                                                "POST",
+                                                "PUT",
+                                                "DELETE",
+                                                "OPTIONS"));
+
+                configuration.setAllowedHeaders(
+                                List.of(
+                                                "Authorization",
+                                                "Content-Type"));
+
                 configuration.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
+
+                source.registerCorsConfiguration(
+                                "/**",
+                                configuration);
 
                 return source;
         }

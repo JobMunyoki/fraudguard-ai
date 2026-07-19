@@ -6,8 +6,10 @@ import com.fraudguard.backend.dto.auth.RegisterRequest;
 import com.fraudguard.backend.entity.AppUser;
 import com.fraudguard.backend.entity.Role;
 import com.fraudguard.backend.repository.AppUserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
@@ -26,15 +28,23 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (appUserRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already registered.");
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase();
+
+        if (appUserRepository.existsByEmail(email)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Email is already registered.");
         }
 
-        Role role = request.getRole() != null ? request.getRole() : Role.VIEWER;
+        Role role = request.getRole() != null
+                ? request.getRole()
+                : Role.VIEWER;
 
         AppUser user = new AppUser(
-                request.getFullName(),
-                request.getEmail(),
+                request.getFullName().trim(),
+                email,
                 passwordEncoder.encode(request.getPassword()),
                 role);
 
@@ -49,15 +59,29 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        AppUser user = appUserRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password."));
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase();
+
+        AppUser user = appUserRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Invalid email or password."));
 
         boolean passwordMatches = passwordEncoder.matches(
                 request.getPassword(),
                 user.getPassword());
 
         if (!passwordMatches) {
-            throw new RuntimeException("Invalid email or password.");
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Invalid email or password.");
+        }
+
+        if (!user.isActive()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "This account has been disabled. Contact an administrator.");
         }
 
         String token = jwtService.generateToken(user);
