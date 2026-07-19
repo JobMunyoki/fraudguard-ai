@@ -677,9 +677,9 @@ Public deployment is being prepared.
 After deployment, replace this section with the real URLs:
 
 ```text
-Frontend:       REPLACE_WITH_FRONTEND_URL
-Backend health: REPLACE_WITH_BACKEND_HEALTH_URL
-AI API docs:    REPLACE_WITH_AI_DOCS_URL
+Frontend:       fraudguard-ai-2foh.vercel.app
+Backend health: https://fraudguard-backend-jloa.onrender.com/health
+AI API docs:    https://fraudguard-ai-ze8c.onrender.com/docs
 ```
 
 Do not publish real administrator credentials. Create dedicated demo accounts with fictional data.
