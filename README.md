@@ -2,7 +2,16 @@
 
 FraudGuard AI is a full-stack, AI-powered banking fraud detection and investigation platform. It analyzes banking transactions, assigns fraud risk scores through a Python machine-learning service, stores results in MySQL, and provides role-based dashboards for administrators, fraud analysts, and viewers.
 
-> **Project status:** Local Docker deployment is complete.
+> **Project status:** Public cloud deployment is live. Local Docker deployment is also supported.
+
+## Live Demo
+
+- **Frontend:** https://fraudguard-ai-2foh.vercel.app
+- **Backend health:** https://fraudguard-backend-jloa.onrender.com/api/health
+- **AI API documentation:** https://fraudguard-ai-ze8c.onrender.com/docs
+- **GitHub repository:** https://github.com/JobMunyoki/fraudguard-ai
+
+> The backend and AI service use Render's free tier. The first request after inactivity may take approximately one minute while the services wake up.
 
 ---
 
@@ -156,6 +165,10 @@ TRANSACTION_REVIEW_UPDATED
 ### Database and Infrastructure
 
 - MySQL 8
+- Aiven MySQL for the hosted database
+- Render for the Spring Boot backend
+- Render for the FastAPI AI service
+- Vercel for the React frontend
 - Docker
 - Docker Compose
 - Docker health checks
@@ -167,20 +180,20 @@ TRANSACTION_REVIEW_UPDATED
 ```text
 ┌───────────────────────────────┐
 │ React + Material UI Frontend  │
-│ Served by Nginx in Docker     │
+│ Vercel / Nginx in Docker      │
 └───────────────┬───────────────┘
                 │ REST/JSON
                 ▼
 ┌───────────────────────────────┐
 │ Spring Boot Backend           │
-│ Security, workflow, database  │
+│ Render / local Docker         │
 └───────────┬───────────┬───────┘
             │           │
             │           └───────────────┐
             ▼                           ▼
 ┌───────────────────────┐   ┌────────────────────────┐
-│ MySQL Database        │   │ FastAPI AI Service     │
-│ Users and cases       │   │ Fraud prediction       │
+│ Aiven / MySQL         │   │ FastAPI AI Service     │
+│ Users and cases       │   │ Render / local Docker  │
 └───────────────────────┘   └───────────┬────────────┘
                                         ▼
                             ┌────────────────────────┐
@@ -453,10 +466,11 @@ Example request:
 }
 ```
 
-Interactive FastAPI documentation is available locally at:
+Interactive FastAPI documentation is available at:
 
 ```text
-http://localhost:8000/docs
+Local:    http://localhost:8000/docs
+Deployed: https://fraudguard-ai-ze8c.onrender.com/docs
 ```
 
 ---
@@ -520,12 +534,16 @@ docker compose ps
 ### 5. Open the services
 
 ```text
-Frontend:        http://localhost:5173
-Backend:         http://localhost:8080
-Backend health:  http://localhost:8080/api/health
-AI service:      http://localhost:8000
-AI API docs:     http://localhost:8000/docs
-MySQL host port: 3307
+Local frontend:          http://localhost:5173
+Local backend:           http://localhost:8080
+Local backend health:    http://localhost:8080/api/health
+Local AI service:        http://localhost:8000
+Local AI API docs:       http://localhost:8000/docs
+Local MySQL host port:   3307
+
+Deployed frontend:       https://fraudguard-ai-2foh.vercel.app
+Deployed backend health: https://fraudguard-backend-jloa.onrender.com/api/health
+Deployed AI API docs:    https://fraudguard-ai-ze8c.onrender.com/docs
 ```
 
 ### 6. View logs
@@ -672,17 +690,42 @@ After adding the files, enable links such as:
 
 ## Deployment Status
 
-Public deployment is being prepared.
+FraudGuard AI is deployed as a multi-service cloud application.
 
-After deployment, replace this section with the real URLs:
+| Component            | Platform | URL                                                     |
+| -------------------- | -------- | ------------------------------------------------------- |
+| React frontend       | Vercel   | https://fraudguard-ai-2foh.vercel.app                   |
+| Spring Boot backend  | Render   | https://fraudguard-backend-jloa.onrender.com            |
+| Backend health check | Render   | https://fraudguard-backend-jloa.onrender.com/api/health |
+| FastAPI AI service   | Render   | https://fraudguard-ai-ze8c.onrender.com                 |
+| AI API documentation | Render   | https://fraudguard-ai-ze8c.onrender.com/docs            |
+| MySQL database       | Aiven    | Private managed database connection                     |
+
+### Production Request Flow
 
 ```text
-Frontend:       fraudguard-ai-2foh.vercel.app
-Backend health: https://fraudguard-backend-jloa.onrender.com/health
-AI API docs:    https://fraudguard-ai-ze8c.onrender.com/docs
+Vercel frontend
+      ↓ HTTPS
+Render Spring Boot backend
+      ├──→ Aiven MySQL
+      └──→ Render FastAPI AI service
 ```
 
-Do not publish real administrator credentials. Create dedicated demo accounts with fictional data.
+The frontend uses the deployed backend API through:
+
+```text
+VITE_API_URL=https://fraudguard-backend-jloa.onrender.com/api
+```
+
+The backend permits requests from:
+
+```text
+https://fraudguard-ai-2foh.vercel.app
+```
+
+> The Render services may spin down after inactivity on the free tier. The first request can take longer while the services start.
+
+Do not publish real administrator credentials. Use fictional transaction data and dedicated demo accounts when sharing the project.
 
 ---
 
@@ -695,7 +738,7 @@ Do not publish real administrator credentials. Create dedicated demo accounts wi
 - Two-factor authentication and forgot-password email recovery are not yet implemented.
 - Explainable-AI output, model drift monitoring, and model governance are not yet implemented.
 - Automated test coverage and production observability still need expansion.
-- Public cloud deployment URLs have not yet been added.
+- Free-tier Render services can have a cold-start delay after inactivity.
 
 ---
 
@@ -729,7 +772,7 @@ FraudGuard AI demonstrates:
 - Secure REST API development
 - Role-based authorization
 - Relational database design
-- Dockerized microservice deployment
+- Dockerized microservice architecture and public cloud deployment
 - Administrative user management
 - Fraud investigation workflows
 - Reporting and auditability
