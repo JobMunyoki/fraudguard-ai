@@ -46,6 +46,7 @@ export default function Login() {
   async function handleLogin(event) {
   event.preventDefault();
   setError("");
+  setLoading(true);
 
   try {
     const response = await api.post("/auth/login", {
@@ -84,6 +85,8 @@ export default function Login() {
     } else {
       setError(backendMessage || "Invalid email or password.");
     }
+  } finally {
+    setLoading(false);
   }
 }
 
