@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Divider,
   Card,
   CardContent,
   CircularProgress,
@@ -13,11 +14,18 @@ import {
 } from "@mui/material";
 import api from "../api/axiosConfig";
 
+const DEMO_EMAIL = "analyst.demo@fraudguard.ai";
+const DEMO_PASSWORD = "123456789";
+
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const fillDemoCredentials = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -134,6 +142,40 @@ export default function Login() {
                 disabled={loading}
               >
                 {loading ? <CircularProgress size={24} /> : "Login"}
+              </Button>
+            </Box>
+
+            <Divider sx={{ my: 2 }}>Demo Access</Divider>
+
+            <Box
+              sx={{
+                p: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                backgroundColor: "grey.50",
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight="bold">
+                Demo Analyst Account
+              </Typography>
+
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Email:</strong> {DEMO_EMAIL}
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Password:</strong> {DEMO_PASSWORD}
+              </Typography>
+
+              <Button
+                type="button"
+                fullWidth
+                variant="outlined"
+                sx={{ mt: 1.5 }}
+                onClick={fillDemoCredentials}
+              >
+                USE DEMO ACCOUNT
               </Button>
             </Box>
 
