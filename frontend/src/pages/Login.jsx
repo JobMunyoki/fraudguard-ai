@@ -16,8 +16,8 @@ import api from "../api/axiosConfig";
 export default function Login() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("admin@fraudguard.ai");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
