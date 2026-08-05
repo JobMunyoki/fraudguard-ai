@@ -2,61 +2,105 @@ package com.fraudguard.backend.service;
 
 import com.fraudguard.backend.entity.BankTransaction;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailNotificationService {
 
-    private final JavaMailSender mailSender;
+    private final RestClient restClient;
 
-    @Value("${spring.mail.username:}")
-    private String mailUsername;
+    @Value("${BREVO_API_URL:https://api.brevo.com/v3/smtp/email}")
+    private String brevoApiUrl;
 
-    @Value("${fraudguard.mail.from:}")
-    private String fromAddress;
+    @Value("${BREVO_API_KEY:}")
+    private String brevoApiKey;
+
+    @Value("${BREVO_SENDER_EMAIL:}")
+    private String senderEmail;
+
+    @Value("${BREVO_SENDER_NAME:FraudGuard AI}")
+    private String senderName;
 
     @Value("${fraudguard.mail.escalation-recipient:}")
     private String escalationRecipient;
 
-    public EmailNotificationService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailNotificationService() {
+        this.restClient = RestClient.builder().build();
     }
 
     public void sendEscalationEmail(BankTransaction transaction) {
-        if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(escalationRecipient)) {
-            System.out.println("Email notification skipped. MAIL_USERNAME or FRAUDGUARD_ESCALATION_RECIPIENT is not configured.");
+        if (!StringUtils.hasText(brevoApiKey)
+                || !StringUtils.hasText(senderEmail)
+                || !StringUtils.hasText(escalationRecipient)) {
+
+            System.out.println(
+                    "Email notification skipped. BREVO_API_KEY, "
+                            + "BREVO_SENDER_EMAIL or "
+                            + "FRAUDGUARD_ESCALATION_RECIPIENT is not configured.");
             return;
         }
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
+            String resolvedSenderName = StringUtils.hasText(senderName)
+                    ? senderName
+                    : "FraudGuard AI";
 
-            message.setFrom(StringUtils.hasText(fromAddress) ? fromAddress : mailUsername);
-            message.setTo(escalationRecipient);
+            Map<String, Object> sender = new LinkedHashMap<>();
+            sender.put("name", resolvedSenderName);
+            sender.put("email", senderEmail);
 
-            message.setSubject(
-                    "FraudGuard AI Alert: Escalated Case " +
-                            transaction.getTransactionReference()
-            );
+            Map<String, Object> recipient = new LinkedHashMap<>();
+            recipient.put("email", escalationRecipient);
 
-            message.setText(buildEscalationEmailBody(transaction));
+            Map<String, Object> requestBody = new LinkedHashMap<>();
+            requestBody.put("sender", sender);
+            requestBody.put("to", List.of(recipient));
+            requestBody.put(
+                    "subject",
+                    "FraudGuard AI Alert: Escalated Case "
+                            + transaction.getTransactionReference());
+            requestBody.put(
+                    "textContent",
+                    buildEscalationEmailBody(transaction));
 
-            mailSender.send(message);
+            String response = restClient.post()
+                    .uri(brevoApiUrl)
+                    .header("api-key", brevoApiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
 
             System.out.println(
-                    "Escalation email sent for transaction " +
-                            transaction.getTransactionReference()
-            );
+                    "Escalation email sent through Brevo for transaction "
+                            + transaction.getTransactionReference()
+                            + ". Response: "
+                            + response);
+
+        } catch (RestClientResponseException error) {
+            System.out.println(
+                    "Failed to send escalation email for transaction "
+                            + transaction.getTransactionReference()
+                            + ". Brevo status: "
+                            + error.getStatusCode()
+                            + ". Response: "
+                            + error.getResponseBodyAsString());
+
         } catch (Exception error) {
             System.out.println(
-                    "Failed to send escalation email for transaction " +
-                            transaction.getTransactionReference() +
-                            ". Reason: " +
-                            error.getMessage()
-            );
+                    "Failed to send escalation email for transaction "
+                            + transaction.getTransactionReference()
+                            + ". Reason: "
+                            + error.getMessage());
         }
     }
 
@@ -108,8 +152,7 @@ public class EmailNotificationService {
                 valueOrDefault(transaction.getEscalatedAt()),
                 valueOrDefault(transaction.getEscalationReason()),
 
-                valueOrDefault(transaction.getSlaDueAt())
-        );
+                valueOrDefault(transaction.getSlaDueAt()));
     }
 
     private String valueOrDefault(Object value) {
