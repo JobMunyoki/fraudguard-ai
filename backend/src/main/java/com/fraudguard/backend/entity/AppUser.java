@@ -28,6 +28,11 @@ public class AppUser {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private boolean active = true;
 
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
+    private int failedLoginAttempts = 0;
+
+    private LocalDateTime lockedUntil;
+
     private LocalDateTime createdAt;
 
     public AppUser() {
@@ -94,6 +99,27 @@ public class AppUser {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public LocalDateTime getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public void setLockedUntil(LocalDateTime lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
+    public boolean isAccountLocked() {
+        return lockedUntil != null
+                && lockedUntil.isAfter(LocalDateTime.now());
     }
 
     public LocalDateTime getCreatedAt() {

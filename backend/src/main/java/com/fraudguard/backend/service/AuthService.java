@@ -11,85 +11,154 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+
 @Service
 public class AuthService {
 
-    private final AppUserRepository appUserRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+        private static final int MAX_FAILED_ATTEMPTS = 5;
+        private static final long LOCK_DURATION_MINUTES = 15;
 
-    public AuthService(
-            AppUserRepository appUserRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
-        this.appUserRepository = appUserRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-    }
+        private static final String DEMO_ANALYST_EMAIL = "analyst.demo@fraudguard.ai";
 
-    public AuthResponse register(RegisterRequest request) {
-        String email = request.getEmail()
-                .trim()
-                .toLowerCase();
+        private final AppUserRepository appUserRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final JwtService jwtService;
 
-        if (appUserRepository.existsByEmail(email)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Email is already registered.");
+        public AuthService(
+                        AppUserRepository appUserRepository,
+                        PasswordEncoder passwordEncoder,
+                        JwtService jwtService) {
+
+                this.appUserRepository = appUserRepository;
+                this.passwordEncoder = passwordEncoder;
+                this.jwtService = jwtService;
         }
 
-        Role role = request.getRole() != null
-                ? request.getRole()
-                : Role.VIEWER;
+        public AuthResponse register(RegisterRequest request) {
+                String email = request.getEmail()
+                                .trim()
+                                .toLowerCase();
 
-        AppUser user = new AppUser(
-                request.getFullName().trim(),
-                email,
-                passwordEncoder.encode(request.getPassword()),
-                role);
+                if (appUserRepository.existsByEmail(email)) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.CONFLICT,
+                                        "Email is already registered.");
+                }
 
-        AppUser savedUser = appUserRepository.save(user);
-        String token = jwtService.generateToken(savedUser);
+                Role role = request.getRole() != null
+                                ? request.getRole()
+                                : Role.VIEWER;
 
-        return new AuthResponse(
-                token,
-                savedUser.getFullName(),
-                savedUser.getEmail(),
-                savedUser.getRole());
-    }
+                AppUser user = new AppUser(
+                                request.getFullName().trim(),
+                                email,
+                                passwordEncoder.encode(request.getPassword()),
+                                role);
 
-    public AuthResponse login(LoginRequest request) {
-        String email = request.getEmail()
-                .trim()
-                .toLowerCase();
+                AppUser savedUser = appUserRepository.save(user);
+                String token = jwtService.generateToken(savedUser);
 
-        AppUser user = appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Invalid email or password."));
-
-        boolean passwordMatches = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword());
-
-        if (!passwordMatches) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Invalid email or password.");
+                return new AuthResponse(
+                                token,
+                                savedUser.getFullName(),
+                                savedUser.getEmail(),
+                                savedUser.getRole());
         }
 
-        if (!user.isActive()) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "This account has been disabled. Contact an administrator.");
+        public AuthResponse login(LoginRequest request) {
+                String email = request.getEmail()
+                                .trim()
+                                .toLowerCase();
+
+                AppUser user = appUserRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.UNAUTHORIZED,
+                                                "Invalid email or password."));
+
+                boolean demoAccount = DEMO_ANALYST_EMAIL.equals(email);
+
+                if (!user.isActive()) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.FORBIDDEN,
+                                        "This account has been disabled. Contact an administrator.");
+                }
+
+                /*
+                 * The public Demo Analyst account is exempt from account lockout.
+                 * This prevents one visitor from locking the demo account for everyone.
+                 */
+                if (!demoAccount && user.isAccountLocked()) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.LOCKED,
+                                        "Account temporarily locked after too many failed login attempts. "
+                                                        + "Try again in 15 minutes.");
+                }
+
+                /*
+                 * Clear an expired lock before checking the password.
+                 */
+                if (!demoAccount
+                                && user.getLockedUntil() != null
+                                && !user.isAccountLocked()) {
+
+                        user.setFailedLoginAttempts(0);
+                        user.setLockedUntil(null);
+                        appUserRepository.save(user);
+                }
+
+                boolean passwordMatches = passwordEncoder.matches(
+                                request.getPassword(),
+                                user.getPassword());
+
+                if (!passwordMatches) {
+                        if (!demoAccount) {
+                                recordFailedLogin(user);
+                        }
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.UNAUTHORIZED,
+                                        "Invalid email or password.");
+                }
+
+                /*
+                 * Successful login clears previous failed attempts.
+                 */
+                if (user.getFailedLoginAttempts() > 0
+                                || user.getLockedUntil() != null) {
+
+                        user.setFailedLoginAttempts(0);
+                        user.setLockedUntil(null);
+                        appUserRepository.save(user);
+                }
+
+                String token = jwtService.generateToken(user);
+
+                return new AuthResponse(
+                                token,
+                                user.getFullName(),
+                                user.getEmail(),
+                                user.getRole());
         }
 
-        String token = jwtService.generateToken(user);
+        private void recordFailedLogin(AppUser user) {
+                int newFailedAttempts = user.getFailedLoginAttempts() + 1;
 
-        return new AuthResponse(
-                token,
-                user.getFullName(),
-                user.getEmail(),
-                user.getRole());
-    }
+                user.setFailedLoginAttempts(newFailedAttempts);
+
+                if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+                        user.setLockedUntil(
+                                        LocalDateTime.now()
+                                                        .plusMinutes(LOCK_DURATION_MINUTES));
+
+                        appUserRepository.save(user);
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.LOCKED,
+                                        "Account temporarily locked after too many failed login attempts. "
+                                                        + "Try again in 15 minutes.");
+                }
+
+                appUserRepository.save(user);
+        }
 }
