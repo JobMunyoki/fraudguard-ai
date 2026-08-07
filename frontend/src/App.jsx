@@ -6,6 +6,8 @@ import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import AuditLogs from "./pages/AuditLogs";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
 import Profile from "./pages/Profile";
 import MyAssignedCases from "./pages/MyAssignedCases";
@@ -33,6 +35,16 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
 
         <Route
           path="/dashboard"

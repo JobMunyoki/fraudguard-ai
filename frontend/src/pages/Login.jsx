@@ -133,9 +133,27 @@ export default function Login() {
                 fullWidth
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                sx={{ mb: 3 }}
+                sx={{ mb: 1 }}
                 required
               />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mb: 2,
+                }}
+              >
+                <Button
+                  type="button"
+                  size="small"
+                  onClick={() =>
+                    navigate("/forgot-password")
+                  }
+                >
+                  Forgot password?
+                </Button>
+              </Box>
 
               <Button
                 type="submit"
