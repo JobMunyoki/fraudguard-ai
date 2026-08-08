@@ -416,14 +416,6 @@ const [slaError, setSlaError] = useState("");
     setMobileOpen(false);
   }
 
-  function handleMobileMenuOpen() {
-  setMobileOpen(true);
-  }
-
-  function handleMobileMenuClose() {
-    setMobileOpen(false);
-  }
-
   async function loadDashboardData() {
   try {
     setLoading(true);
@@ -739,7 +731,11 @@ function getSlaCaseStatus(caseItem) {
               </Box>
             </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={{ xs: 0.5, sm: 2 }}
+            alignItems="center"
+          >
           {canManageTransactions && (
   <>
     <IconButton color="primary" onClick={handleOpenAlertCenter}>
@@ -823,6 +819,12 @@ function getSlaCaseStatus(caseItem) {
               label={localStorage.getItem("fraudguard_role") || "USER"}
               color="primary"
               variant="outlined"
+              sx={{
+                display: {
+                  xs: "none",
+                  sm: "inline-flex",
+                },
+              }}
             />
 
                     <Button
@@ -839,16 +841,46 @@ function getSlaCaseStatus(caseItem) {
                       Logout
                     </Button>
 
-            <Avatar sx={{ bgcolor: "#2563eb" }}>
+            <Avatar
+              sx={{
+                bgcolor: "#2563eb",
+                display: {
+                  xs: "none",
+                  sm: "flex",
+                },
+              }}
+            >
               {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
             </Avatar>
           </Stack>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Container
+        maxWidth="xl"
+        sx={{
+          py: {
+            xs: 3,
+            md: 4,
+          },
+          px: {
+            xs: 2,
+            sm: 3,
+          },
+        }}
+      >
         <Box mb={4}>
-          <Typography variant="h4" fontWeight="bold">
+          <Typography
+            variant="h4"
+            fontWeight="bold"
+            sx={{
+              fontSize: {
+                xs: "1.8rem",
+                sm: "2.125rem",
+              },
+              lineHeight: 1.2,
+            }}
+          >
             FraudGuard AI Dashboard
           </Typography>
 
