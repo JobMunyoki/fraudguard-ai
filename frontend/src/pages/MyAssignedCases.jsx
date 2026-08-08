@@ -16,6 +16,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
+  useMediaQuery,
   Drawer,
   FormControl,
   List,
@@ -38,6 +40,7 @@ import {
   DashboardCustomize,
   History,
   ManageAccounts,
+  Menu,
   NotificationsActive,
   Person,
   ReceiptLong,
@@ -104,66 +107,86 @@ const sidebarItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
   const role = localStorage.getItem("fraudguard_role");
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" fontWeight="bold">
           FraudGuard AI
         </Typography>
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+
+        <Typography
+          variant="body2"
+          sx={{ color: "#94a3b8", mt: 0.5 }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
           .filter((item) => item.roles.includes(role))
           .map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path;
 
             return (
-              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
+              >
                 <ListItemButton
                   component={Link}
                   to={item.path}
+                  onClick={onClose}
                   sx={{
                     borderRadius: 2,
-                    backgroundColor: isActive ? "#2563eb" : "transparent",
-                    color: isActive ? "#ffffff" : "#cbd5e1",
-                    textDecoration: "none",
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
+
                     "&:hover": {
-                      backgroundColor: isActive ? "#2563eb" : "#1e293b",
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
                     },
                   }}
                 >
                   <ListItemIcon
                     sx={{
-                      color: isActive ? "#ffffff" : "#94a3b8",
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
                       minWidth: 40,
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.label} />
+
+                  <ListItemText
+                    primary={item.label}
+                  />
                 </ListItemButton>
               </ListItem>
             );
@@ -173,14 +196,28 @@ function Sidebar() {
       <Box sx={{ flexGrow: 1 }} />
 
       <Box sx={{ p: 2 }}>
-        <Card sx={{ backgroundColor: "#1e293b", color: "#ffffff", borderRadius: 3 }}>
+        <Card
+          sx={{
+            backgroundColor: "#1e293b",
+            color: "#ffffff",
+            borderRadius: 3,
+          }}
+        >
           <CardContent>
-            <Typography variant="body2" fontWeight="bold">
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+            >
               System Status
             </Typography>
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+
+            <Typography
+              variant="caption"
+              sx={{ color: "#94a3b8" }}
+            >
               Backend connected
             </Typography>
+
             <Box mt={1}>
               <Chip
                 label="Online"
@@ -195,7 +232,54 @@ function Sidebar() {
           </CardContent>
         </Card>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight: "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
 
@@ -259,6 +343,9 @@ function formatDateTime(value) {
 }
 
 export default function MyAssignedCases() {
+  const isMobile = useMediaQuery("(max-width:899px)");
+
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -272,6 +359,14 @@ export default function MyAssignedCases() {
   const [noteText, setNoteText] = useState("");
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+
+    function handleMobileMenuOpen() {
+      setMobileOpen(true);
+    }
+
+    function handleMobileMenuClose() {
+      setMobileOpen(false);
+  }
 
   async function loadAssignedCases() {
     try {
@@ -415,13 +510,22 @@ async function handleAddInvestigationNote() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={handleMobileMenuClose}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${drawerWidth}px)`,
+
+          width: {
+            xs: "100%",
+            md: `calc(100% - ${drawerWidth}px)`,
+          },
+
+          minWidth: 0,
           minHeight: "100vh",
         }}
       >
@@ -435,20 +539,65 @@ async function handleAddInvestigationNote() {
           }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                My Assigned Cases
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Fraud cases assigned to you for investigation
-              </Typography>
-            </Box>
+            <Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    minWidth: 0,
+  }}
+>
+  <IconButton
+    onClick={handleMobileMenuOpen}
+    sx={{
+      display: {
+        xs: "inline-flex",
+        md: "none",
+      },
+    }}
+  >
+    <Menu />
+  </IconButton>
 
-            <Stack direction="row" spacing={2} alignItems="center">
+  <Box sx={{ minWidth: 0 }}>
+    <Typography
+      variant="h6"
+      fontWeight="bold"
+      noWrap
+    >
+      My Assigned Cases
+    </Typography>
+
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{
+        display: {
+          xs: "none",
+          sm: "block",
+        },
+      }}
+    >
+      Fraud cases assigned to you for investigation
+    </Typography>
+  </Box>
+</Box>
+
+            <Stack
+              direction="row"
+              spacing={{ xs: 0.5, sm: 2 }}
+              alignItems="center"
+            >
               <Chip
                 label={localStorage.getItem("fraudguard_role") || "USER"}
                 color="primary"
                 variant="outlined"
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "inline-flex",
+                  },
+                }}
               />
 
               <Button
@@ -465,23 +614,53 @@ async function handleAddInvestigationNote() {
                 Logout
               </Button>
 
-              <Avatar sx={{ bgcolor: "#2563eb" }}>
+              <Avatar
+                sx={{
+                  bgcolor: "#2563eb",
+                  display: {
+                    xs: "none",
+                    sm: "flex",
+                  },
+                }}
+              >
                 {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
               </Avatar>
             </Stack>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-          <Box mb={4}>
-            <Typography variant="h4" fontWeight="bold">
-              My Investigation Cases
-            </Typography>
+        <Container
+  maxWidth="xl"
+  sx={{
+    py: {
+      xs: 3,
+      md: 4,
+    },
+    px: {
+      xs: 2,
+      sm: 3,
+    },
+  }}
+>
+  <Box mb={4}>
+    <Typography
+      variant="h4"
+      fontWeight="bold"
+      sx={{
+        fontSize: {
+          xs: "1.8rem",
+          sm: "2.125rem",
+        },
+        lineHeight: 1.2,
+      }}
+    >
+      My Investigation Cases
+    </Typography>
 
-            <Typography color="text.secondary" mt={1}>
-              Review and update suspicious or fraudulent transactions assigned to you.
-            </Typography>
-          </Box>
+    <Typography color="text.secondary" mt={1}>
+      Review and update suspicious or fraudulent transactions assigned to you.
+    </Typography>
+  </Box>
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
@@ -584,7 +763,15 @@ async function handleAddInvestigationNote() {
                 </Typography>
                 ) : (
                 <>
-                  <Box sx={{ overflowX: "auto" }}>
+                  <Box
+                    sx={{
+                      overflowX: "auto",
+                      display: {
+                        xs: "none",
+                        md: "block",
+                      },
+                    }}
+                  >
                     <table
                       style={{
                         width: "100%",
@@ -728,6 +915,201 @@ async function handleAddInvestigationNote() {
                     </table>
                   </Box>
 
+                  <Stack
+  spacing={2}
+  sx={{
+    display: {
+      xs: "flex",
+      md: "none",
+    },
+  }}
+>
+  {paginatedCases.map((item) => (
+    <Card
+      key={item.id}
+      variant="outlined"
+      sx={{
+        borderRadius: 3,
+      }}
+    >
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Transaction Reference
+            </Typography>
+
+            <Typography fontWeight="bold">
+              {item.transactionReference}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Customer
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {item.customerId}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Amount
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {formatCurrency(item.amount)}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Risk
+              </Typography>
+
+              <Box mt={0.5}>
+                <Chip
+                  label={item.riskScore}
+                  size="small"
+                  color={
+                    Number(item.riskScore) >= 90
+                      ? "error"
+                      : "warning"
+                  }
+                />
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Prediction
+              </Typography>
+
+              <Box mt={0.5}>
+                <Chip
+                  label={item.predictionLabel}
+                  size="small"
+                  color={getPredictionColor(
+                    item.predictionLabel
+                  )}
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          <Divider />
+
+          <Stack
+            direction="row"
+            flexWrap="wrap"
+            useFlexGap
+            gap={1}
+          >
+            <Chip
+              label={item.reviewStatus}
+              size="small"
+              variant="outlined"
+            />
+
+            <Chip
+              label={getSlaStatus(item).label}
+              size="small"
+              color={getSlaStatus(item).color}
+              variant="outlined"
+            />
+
+            {item.escalated && (
+              <Chip
+                label="ESCALATED"
+                size="small"
+                color="error"
+              />
+            )}
+          </Stack>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() =>
+              handleOpenDetails(item)
+            }
+          >
+            Details
+          </Button>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                item.id,
+                "UNDER_REVIEW"
+              )
+            }
+          >
+            Mark Under Review
+          </Button>
+
+          <Button
+            fullWidth
+            variant="contained"
+            color="error"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                item.id,
+                "CONFIRMED_FRAUD"
+              )
+            }
+          >
+            Confirm Fraud
+          </Button>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            color="success"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                item.id,
+                "FALSE_POSITIVE"
+              )
+            }
+          >
+            False Positive
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  ))}
+</Stack>
+
                   <TablePagination
                     component="div"
                     count={filteredCases.length}
@@ -743,11 +1125,13 @@ async function handleAddInvestigationNote() {
           </Card>
 
           <Dialog
-  open={Boolean(selectedCase)}
-  onClose={handleCloseDetails}
-  maxWidth="md"
-  fullWidth
->
+            open={Boolean(selectedCase)}
+            onClose={handleCloseDetails}
+            maxWidth="md"
+            fullWidth
+            fullScreen={isMobile}
+          >
+
   <DialogTitle>
     <Typography variant="h6" fontWeight="bold">
       Assigned Case Details
@@ -930,6 +1314,7 @@ async function handleAddInvestigationNote() {
 
                 <Button
                   variant="contained"
+                  fullWidth={isMobile}
                   sx={{ mt: 2 }}
                   onClick={handleAddInvestigationNote}
                   disabled={savingNote}
@@ -967,7 +1352,36 @@ async function handleAddInvestigationNote() {
     )}
   </DialogContent>
 
-  <DialogActions>
+  <DialogActions
+    sx={{
+      px: {
+        xs: 2,
+        sm: 3,
+      },
+      py: 2,
+
+      flexDirection: {
+        xs: "column",
+        sm: "row",
+      },
+
+      alignItems: {
+        xs: "stretch",
+        sm: "center",
+      },
+
+      gap: 1,
+
+      "& .MuiButton-root": {
+        margin: 0,
+
+        width: {
+          xs: "100%",
+          sm: "auto",
+        },
+      },
+    }}
+  >
     <Button onClick={handleCloseDetails}>Close</Button>
 
     {selectedCase && (
