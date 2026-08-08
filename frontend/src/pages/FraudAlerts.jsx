@@ -32,6 +32,7 @@ import {
   TextField,
   Toolbar,
   Typography,
+  useMediaQuery,
   FormControl,
   InputLabel,
 } from "@mui/material";
@@ -352,6 +353,8 @@ function getPredictionColor(label) {
 }
 
 export default function FraudAlerts() {
+  const isMobile = useMediaQuery("(max-width:899px)");
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1029,7 +1032,15 @@ function formatDateTime(value) {
                 </Typography>
               ) : (
               <>
-                <Box sx={{ overflowX: "auto" }}>
+                <Box
+                  sx={{
+                    overflowX: "auto",
+                    display: {
+                      xs: "none",
+                      md: "block",
+                    },
+                  }}
+                >
                   <table
                     style={{
                       width: "100%",
@@ -1219,6 +1230,220 @@ function formatDateTime(value) {
               </table>
                 </Box>
 
+                <Stack
+  spacing={2}
+  sx={{
+    display: {
+      xs: "flex",
+      md: "none",
+    },
+  }}
+>
+  {paginatedAlerts.map((alert) => (
+    <Card
+      key={alert.id}
+      variant="outlined"
+      sx={{
+        borderRadius: 3,
+      }}
+    >
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Transaction Reference
+            </Typography>
+
+            <Typography fontWeight="bold">
+              {alert.transactionReference}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Customer
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {alert.customerId}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Type
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {alert.transactionType}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Amount
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {formatCurrency(alert.amount)}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Risk Score
+              </Typography>
+
+              <Box mt={0.5}>
+                <Chip
+                  label={alert.riskScore}
+                  size="small"
+                  color={
+                    Number(alert.riskScore) >= 90
+                      ? "error"
+                      : "warning"
+                  }
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          <Divider />
+
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Chip
+              label={alert.predictionLabel}
+              size="small"
+              color={getPredictionColor(
+                alert.predictionLabel
+              )}
+            />
+
+            <Chip
+              label={alert.reviewStatus}
+              size="small"
+              variant="outlined"
+            />
+
+            <Chip
+              label={getSlaStatus(alert).label}
+              size="small"
+              color={getSlaStatus(alert).color}
+              variant="outlined"
+            />
+
+            {alert.escalated && (
+              <Chip
+                label="ESCALATED"
+                size="small"
+                color="error"
+              />
+            )}
+          </Box>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<Visibility />}
+            onClick={() =>
+              handleOpenDetails(alert)
+            }
+          >
+            View Details
+          </Button>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                alert.id,
+                "UNDER_REVIEW"
+              )
+            }
+          >
+            Mark Under Review
+          </Button>
+
+          <Button
+            fullWidth
+            variant="contained"
+            color="error"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                alert.id,
+                "CONFIRMED_FRAUD"
+              )
+            }
+          >
+            Confirm Fraud
+          </Button>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            color="success"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                alert.id,
+                "FALSE_POSITIVE"
+              )
+            }
+          >
+            False Positive
+          </Button>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            color="secondary"
+            disabled={updating}
+            onClick={() =>
+              handleReviewStatus(
+                alert.id,
+                "RESOLVED"
+              )
+            }
+          >
+            Resolve
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  ))}
+</Stack>
+
                 <TablePagination
                   component="div"
                   count={filteredAlerts.length}
@@ -1227,6 +1452,9 @@ function formatDateTime(value) {
                   rowsPerPage={rowsPerPage}
                   onRowsPerPageChange={handleChangeRowsPerPage}
                   rowsPerPageOptions={[5, 10, 25]}
+                  sx={{
+                    overflowX: "auto",
+                  }}
                 />
               </>
               )}
@@ -1238,9 +1466,27 @@ function formatDateTime(value) {
   onClose={handleCloseDetails}
   maxWidth="md"
   fullWidth
+  fullScreen={isMobile}
 >
-  <DialogTitle>
-    <Typography variant="h6" fontWeight="bold">
+  <DialogTitle
+    sx={{
+      px: {
+        xs: 2,
+        sm: 3,
+      },
+      py: 2,
+    }}
+  >
+    <Typography
+      variant="h6"
+      fontWeight="bold"
+      sx={{
+        fontSize: {
+          xs: "1.1rem",
+          sm: "1.25rem",
+        },
+      }}
+    >
       Fraud Alert Details
     </Typography>
 
@@ -1248,7 +1494,6 @@ function formatDateTime(value) {
       Full fraud alert investigation and AI prediction details
     </Typography>
   </DialogTitle>
-
   <DialogContent dividers>
     {selectedAlert && (
       <Box>
@@ -1482,6 +1727,7 @@ function formatDateTime(value) {
     <Button
       variant="contained"
       color="error"
+      fullWidth={isMobile}
       sx={{ mt: 2 }}
       onClick={handleEscalateCase}
       disabled={escalatingCase}
@@ -1686,6 +1932,7 @@ function formatDateTime(value) {
 
           <Button
             variant="contained"
+            fullWidth={isMobile}
             sx={{ mt: 2 }}
             onClick={handleAddInvestigationNote}
             disabled={savingNote}
@@ -1720,7 +1967,35 @@ function formatDateTime(value) {
     )}
   </DialogContent>
 
-  <DialogActions>
+  <DialogActions
+  sx={{
+    px: {
+      xs: 2,
+      sm: 3,
+    },
+    py: 2,
+
+    flexDirection: {
+      xs: "column",
+      sm: "row",
+    },
+
+    alignItems: {
+      xs: "stretch",
+      sm: "center",
+    },
+
+    gap: 1,
+
+    "& .MuiButton-root": {
+      margin: 0,
+      width: {
+        xs: "100%",
+        sm: "auto",
+      },
+    },
+  }}
+>
     <Button onClick={handleCloseDetails}>Close</Button>
 
     {selectedAlert && (
