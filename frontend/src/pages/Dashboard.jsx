@@ -50,6 +50,7 @@ import {
   NotificationsNone,
   Person,
   Settings,
+  Menu,
 } from "@mui/icons-material";
 
 import {
@@ -190,22 +191,17 @@ function StatCard({ title, value, subtitle, icon }) {
   );
 }
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
@@ -213,50 +209,81 @@ function Sidebar() {
           FraudGuard AI
         </Typography>
 
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#94a3b8",
+            mt: 0.5,
+          }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
-  .filter((item) =>
-    item.roles.includes(localStorage.getItem("fraudguard_role"))
-  )
-  .map((item) => {
-          const isActive = location.pathname === item.path;
+          .filter((item) =>
+            item.roles.includes(
+              localStorage.getItem(
+                "fraudguard_role"
+              )
+            )
+          )
+          .map((item) => {
+            const isActive =
+              location.pathname === item.path;
 
-          return (
-            <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                sx={{
-                  borderRadius: 2,
-                  backgroundColor: isActive ? "#2563eb" : "transparent",
-                  color: isActive ? "#ffffff" : "#cbd5e1",
-                  textDecoration: "none",
-                  "&:hover": {
-                    backgroundColor: isActive ? "#2563eb" : "#1e293b",
-                  },
-                }}
+            return (
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
               >
-                <ListItemIcon
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={onClose}
                   sx={{
-                    color: isActive ? "#ffffff" : "#94a3b8",
-                    minWidth: 40,
+                    borderRadius: 2,
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
+                    textDecoration: "none",
+
+                    "&:hover": {
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
+                    },
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
+                  <ListItemIcon
+                    sx={{
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
 
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+                  <ListItemText
+                    primary={item.label}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
       </List>
 
       <Box sx={{ flexGrow: 1 }} />
@@ -270,11 +297,17 @@ function Sidebar() {
           }}
         >
           <CardContent>
-            <Typography variant="body2" fontWeight="bold">
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+            >
               System Status
             </Typography>
 
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "#94a3b8" }}
+            >
               Backend connected
             </Typography>
 
@@ -292,11 +325,64 @@ function Sidebar() {
           </CardContent>
         </Card>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      {/* MOBILE SIDEBAR */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* DESKTOP SIDEBAR */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight:
+              "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
       
 export default function Dashboard() {
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
+
   const [stats, setStats] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [flaggedTransactions, setFlaggedTransactions] = useState([]);
@@ -321,6 +407,22 @@ const [slaError, setSlaError] = useState("");
 
   const role = localStorage.getItem("fraudguard_role");
   const canManageTransactions = role === "ADMIN" || role === "FRAUD_ANALYST";
+
+  function handleMobileMenuOpen() {
+    setMobileOpen(true);
+  }
+
+  function handleMobileMenuClose() {
+    setMobileOpen(false);
+  }
+
+  function handleMobileMenuOpen() {
+  setMobileOpen(true);
+  }
+
+  function handleMobileMenuClose() {
+    setMobileOpen(false);
+  }
 
   async function loadDashboardData() {
   try {
@@ -563,13 +665,22 @@ function getSlaCaseStatus(caseItem) {
 
   return (
   <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-    <Sidebar />
+    <Sidebar
+      mobileOpen={mobileOpen}
+      onClose={handleMobileMenuClose}
+    />
 
     <Box
       component="main"
       sx={{
         flexGrow: 1,
-        width: `calc(100% - ${drawerWidth}px)`,
+
+        width: {
+          xs: "100%",
+          md: `calc(100% - ${drawerWidth}px)`,
+        },
+
+        minWidth: 0,
         minHeight: "100vh",
       }}
     >
@@ -583,15 +694,50 @@ function getSlaCaseStatus(caseItem) {
         }}
       >
         <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Box>
-            <Typography variant="h6" fontWeight="bold">
-              Dashboard
-            </Typography>
+          <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                minWidth: 0,
+              }}
+            >
+              <IconButton
+                onClick={handleMobileMenuOpen}
+                sx={{
+                  display: {
+                    xs: "inline-flex",
+                    md: "none",
+                  },
+                }}
+              >
+                <Menu />
+              </IconButton>
 
-            <Typography variant="caption" color="text.secondary">
-              Monitor transactions, fraud alerts, and analyst reviews
-            </Typography>
-          </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  noWrap
+                >
+                  Dashboard
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: {
+                      xs: "none",
+                      sm: "block",
+                    },
+                  }}
+                >
+                  Monitor transactions, fraud alerts,
+                  and analyst reviews
+                </Typography>
+              </Box>
+            </Box>
 
           <Stack direction="row" spacing={2} alignItems="center">
           {canManageTransactions && (
