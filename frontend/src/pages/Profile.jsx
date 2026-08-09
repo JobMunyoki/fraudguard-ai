@@ -32,6 +32,7 @@ import {
   DashboardCustomize,
   History,
   ManageAccounts,
+  Menu,
   NotificationsActive,
   Person,
   ReceiptLong,
@@ -106,35 +107,41 @@ const sidebarItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
   const role = localStorage.getItem("fraudguard_role");
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" fontWeight="bold">
           FraudGuard AI
         </Typography>
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#94a3b8",
+            mt: 0.5,
+          }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
@@ -143,39 +150,102 @@ function Sidebar() {
             const isActive = location.pathname === item.path;
 
             return (
-              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
+              >
                 <ListItemButton
                   component={Link}
                   to={item.path}
+                  onClick={onClose}
                   sx={{
                     borderRadius: 2,
-                    backgroundColor: isActive ? "#2563eb" : "transparent",
-                    color: isActive ? "#ffffff" : "#cbd5e1",
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
                     textDecoration: "none",
+
                     "&:hover": {
-                      backgroundColor: isActive ? "#2563eb" : "#1e293b",
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
                     },
                   }}
                 >
                   <ListItemIcon
                     sx={{
-                      color: isActive ? "#ffffff" : "#94a3b8",
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
                       minWidth: 40,
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
+
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
             );
           })}
       </List>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight: "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
 
 export default function Profile() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -187,6 +257,14 @@ export default function Profile() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  function handleMobileMenuOpen() {
+    setMobileOpen(true);
+  }
+
+  function handleMobileMenuClose() {
+    setMobileOpen(false);
+  }
 
   async function loadProfile() {
     try {
@@ -273,66 +351,157 @@ export default function Profile() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={handleMobileMenuClose}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${drawerWidth}px)`,
+
+          width: {
+            xs: "100%",
+            md: `calc(100% - ${drawerWidth}px)`,
+          },
+
+          minWidth: 0,
           minHeight: "100vh",
         }}
       >
         <AppBar
-          position="sticky"
-          elevation={0}
+  position="sticky"
+  elevation={0}
+  sx={{
+    backgroundColor: "#ffffff",
+    color: "#0f172a",
+    borderBottom: "1px solid #e2e8f0",
+  }}
+>
+  <Toolbar
+    sx={{
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 1,
+    }}
+  >
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        minWidth: 0,
+      }}
+    >
+      <IconButton
+        onClick={handleMobileMenuOpen}
+        sx={{
+          display: {
+            xs: "inline-flex",
+            md: "none",
+          },
+        }}
+      >
+        <Menu />
+      </IconButton>
+
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          variant="h6"
+          fontWeight="bold"
+          noWrap
+        >
+          Profile
+        </Typography>
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
           sx={{
-            backgroundColor: "#ffffff",
-            color: "#0f172a",
-            borderBottom: "1px solid #e2e8f0",
+            display: {
+              xs: "none",
+              sm: "block",
+            },
           }}
         >
-          <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Profile
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Manage your account details and password
-              </Typography>
-            </Box>
+          Manage your account details and password
+        </Typography>
+      </Box>
+    </Box>
 
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Chip
-                label={localStorage.getItem("fraudguard_role") || "USER"}
-                color="primary"
-                variant="outlined"
-              />
+    <Stack
+      direction="row"
+      spacing={{ xs: 0.5, sm: 2 }}
+      alignItems="center"
+    >
+      <Chip
+        label={localStorage.getItem("fraudguard_role") || "USER"}
+        color="primary"
+        variant="outlined"
+        sx={{
+          display: {
+            xs: "none",
+            sm: "inline-flex",
+          },
+        }}
+      />
 
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => {
-                  localStorage.removeItem("fraudguard_token");
-                  localStorage.removeItem("fraudguard_fullName");
-                  localStorage.removeItem("fraudguard_email");
-                  localStorage.removeItem("fraudguard_role");
-                  window.location.href = "/login";
-                }}
-              >
-                Logout
-              </Button>
+      <Button
+        variant="outlined"
+        color="error"
+        onClick={() => {
+          localStorage.removeItem("fraudguard_token");
+          localStorage.removeItem("fraudguard_fullName");
+          localStorage.removeItem("fraudguard_email");
+          localStorage.removeItem("fraudguard_role");
+          window.location.href = "/login";
+        }}
+      >
+        Logout
+      </Button>
 
-              <Avatar sx={{ bgcolor: "#2563eb" }}>
-                {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
-              </Avatar>
-            </Stack>
-          </Toolbar>
-        </AppBar>
+      <Avatar
+        sx={{
+          bgcolor: "#2563eb",
+          display: {
+            xs: "none",
+            sm: "flex",
+          },
+        }}
+      >
+        {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
+      </Avatar>
+    </Stack>
+  </Toolbar>
+</AppBar>
 
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container
+          maxWidth="lg"
+          sx={{
+            py: {
+              xs: 3,
+              md: 4,
+            },
+
+            px: {
+              xs: 2,
+              sm: 3,
+            },
+          }}
+        >
           <Box mb={4}>
-            <Typography variant="h4" fontWeight="bold">
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              sx={{
+                fontSize: {
+                  xs: "1.8rem",
+                  sm: "2.125rem",
+                },
+                lineHeight: 1.2,
+              }}
+            >
               My Profile
             </Typography>
             <Typography color="text.secondary" mt={1}>
@@ -354,13 +523,21 @@ export default function Profile() {
                 </Typography>
 
                 <Stack spacing={2}>
-                  <Typography>
+                  <Typography
+                    sx={{
+                      overflowWrap: "anywhere",
+                    }}
+                  >
                     <strong>Email:</strong> {profile?.email || "Loading..."}
                   </Typography>
                   <Typography>
                     <strong>Role:</strong> {profile?.role || "Loading..."}
                   </Typography>
-                  <Typography>
+                  <Typography
+                    sx={{
+                      overflowWrap: "anywhere",
+                    }}
+                  >
                     <strong>Created At:</strong>{" "}
                     {profile?.createdAt
                       ? new Date(profile.createdAt).toLocaleString()
@@ -386,7 +563,16 @@ export default function Profile() {
                     required
                   />
 
-                  <Button type="submit" variant="contained">
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                      width: {
+                        xs: "100%",
+                        sm: "auto",
+                      },
+                    }}
+                  >
                     Save Profile
                   </Button>
                 </Box>
@@ -535,6 +721,12 @@ export default function Profile() {
                     variant="contained"
                     color="warning"
                     disabled={changingPassword}
+                    sx={{
+                      width: {
+                        xs: "100%",
+                        sm: "auto",
+                      },
+                    }}
                     startIcon={
                       changingPassword ? (
                         <CircularProgress size={18} color="inherit" />
