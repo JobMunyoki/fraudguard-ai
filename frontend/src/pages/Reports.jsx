@@ -890,7 +890,17 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
             gap={2}
           >
             <Box>
-              <Typography variant="h4" fontWeight="bold">
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                sx={{
+                  fontSize: {
+                    xs: "1.8rem",
+                    sm: "2.125rem",
+                  },
+                  lineHeight: 1.2,
+                }}
+              >
                 Fraud Reports
               </Typography>
 
@@ -899,7 +909,26 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={2}>
+            <Stack
+              direction={{
+                xs: "column",
+                sm: "row",
+              }}
+              spacing={2}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+
+                "& .MuiButton-root": {
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
+                },
+              }}
+            >
               <Button
                 variant="outlined"
                 startIcon={<Refresh />}
@@ -971,7 +1000,6 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
           </Grid>
 
           <Grid container spacing={3} mt={1}>
-            <Grid item xs={12} md={4}>
               <Card sx={{ borderRadius: 3 }}>
                 <CardContent>
                   <Typography variant="h6" fontWeight="bold">
@@ -989,7 +1017,6 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={4}>
               <Card sx={{ borderRadius: 3 }}>
                 <CardContent>
                   <Typography variant="h6" fontWeight="bold">
@@ -1005,9 +1032,7 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
 
-            <Grid item xs={12} md={4}>
               <Card sx={{ borderRadius: 3 }}>
                 <CardContent>
                   <Typography variant="h6" fontWeight="bold">
@@ -1023,16 +1048,22 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
 
           <Box mt={4}>
             <Typography variant="h6" fontWeight="bold" mb={2}>
               Report Charts
             </Typography>
 
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(3, minmax(0, 1fr))",
+                },
+                gap: 3,
+              }}
+            >
                 <Card sx={{ borderRadius: 3, height: "100%" }}>
                   <CardContent>
                     <Typography variant="h6" fontWeight="bold" mb={2}>
@@ -1061,9 +1092,7 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              </Grid>
 
-              <Grid item xs={12} md={4}>
                 <Card sx={{ borderRadius: 3, height: "100%" }}>
                   <CardContent>
                     <Typography variant="h6" fontWeight="bold" mb={2}>
@@ -1071,9 +1100,26 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                     </Typography>
 
                     <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={reviewStatusChartData}>
+                      <BarChart
+                        data={reviewStatusChartData}
+                        margin={{
+                          top: 10,
+                          right: 10,
+                          left: -15,
+                          bottom: 35,
+                        }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="status" />
+                        <XAxis
+                          dataKey="status"
+                          angle={-25}
+                          textAnchor="end"
+                          interval={0}
+                          height={60}
+                          tick={{
+                            fontSize: 11,
+                          }}
+                        />
                         <YAxis allowDecimals={false} />
                         <Tooltip />
                         <Legend />
@@ -1082,9 +1128,7 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              </Grid>
 
-              <Grid item xs={12} md={4}>
                 <Card sx={{ borderRadius: 3, height: "100%" }}>
                   <CardContent>
                     <Typography variant="h6" fontWeight="bold" mb={2}>
@@ -1094,7 +1138,16 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={transactionTypeChartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="type" />
+                        <XAxis
+                          dataKey="type"
+                          angle={-25}
+                          textAnchor="end"
+                          interval={0}
+                          height={60}
+                          tick={{
+                            fontSize: 11,
+                          }}
+                        />
                         <YAxis allowDecimals={false} />
                         <Tooltip />
                         <Legend />
@@ -1103,9 +1156,8 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
           </Box>
+        </Box>
 
           <Card sx={{ mt: 4, borderRadius: 3 }}>
             <CardContent>
@@ -1249,17 +1301,45 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
         />
       </Box>
 
-      <Stack direction="row" spacing={2}>
-        <Button variant="outlined" onClick={resetReportFilters}>
-          Reset Filters
-        </Button>
+      <Stack
+  direction={{
+    xs: "column",
+    sm: "row",
+  }}
+  spacing={2}
+  alignItems={{
+    xs: "stretch",
+    sm: "center",
+  }}
+>
+  <Button
+    variant="outlined"
+    onClick={resetReportFilters}
+    sx={{
+      width: {
+        xs: "100%",
+        sm: "auto",
+      },
+    }}
+  >
+    Reset Filters
+  </Button>
 
-        <Chip
-          label={`Showing ${filteredReportTransactions.length} of ${flaggedTransactions.length} records`}
-          color="primary"
-          variant="outlined"
-        />
-      </Stack>
+  <Chip
+    label={`Showing ${filteredReportTransactions.length} of ${flaggedTransactions.length} records`}
+    color="primary"
+    variant="outlined"
+    sx={{
+      height: "auto",
+
+      "& .MuiChip-label": {
+        display: "block",
+        whiteSpace: "normal",
+        py: 1,
+      },
+    }}
+  />
+</Stack>
     </Stack>
   </CardContent>
 </Card>
@@ -1279,7 +1359,15 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                 </Typography>
               ) : (
                 <>
-                  <Box sx={{ overflowX: "auto" }}>
+                  <Box
+                    sx={{
+                      overflowX: "auto",
+                      display: {
+                        xs: "none",
+                        md: "block",
+                      },
+                    }}
+                  >
                   <table
                     style={{
                       width: "100%",
@@ -1372,6 +1460,187 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                   </table>
                     </Box>
 
+                    <Stack
+  spacing={2}
+  sx={{
+    display: {
+      xs: "flex",
+      md: "none",
+    },
+  }}
+>
+  {paginatedFlaggedTransactions.map((transaction) => (
+    <Card
+      key={transaction.id}
+      variant="outlined"
+      sx={{
+        borderRadius: 3,
+      }}
+    >
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Transaction Reference
+            </Typography>
+
+            <Typography
+              fontWeight="bold"
+              sx={{
+                overflowWrap: "anywhere",
+              }}
+            >
+              {transaction.transactionReference}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Customer
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {transaction.customerId}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Type
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {transaction.transactionType}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Amount
+              </Typography>
+
+              <Typography fontWeight="bold">
+                KES {Number(transaction.amount || 0).toLocaleString()}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Risk Score
+              </Typography>
+
+              <Box mt={0.5}>
+                <Chip
+                  label={transaction.riskScore}
+                  size="small"
+                  color={
+                    Number(transaction.riskScore) >= 90
+                      ? "error"
+                      : "warning"
+                  }
+                />
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Confidence
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {transaction.confidence !== null &&
+                transaction.confidence !== undefined
+                  ? `${Number(
+                      transaction.confidence * 100
+                    ).toFixed(1)}%`
+                  : "N/A"}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Model
+              </Typography>
+
+              <Typography
+                fontWeight="bold"
+                sx={{
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {transaction.modelUsed || "N/A"}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Divider />
+
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Chip
+              label={transaction.predictionLabel}
+              size="small"
+              color={getPredictionColor(
+                transaction.predictionLabel
+              )}
+            />
+
+            <Chip
+              label={transaction.predictionSource || "UNKNOWN"}
+              size="small"
+              color={
+                transaction.predictionSource === "AI_SERVICE"
+                  ? "primary"
+                  : "default"
+              }
+              variant="outlined"
+            />
+
+            <Chip
+              label={transaction.reviewStatus}
+              size="small"
+              variant="outlined"
+            />
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  ))}
+</Stack>
+
                         <TablePagination
                           component="div"
                           count={filteredReportTransactions.length}
@@ -1380,6 +1649,9 @@ const paginatedFlaggedTransactions = filteredReportTransactions.slice(
                           rowsPerPage={rowsPerPage}
                           onRowsPerPageChange={handleChangeRowsPerPage}
                           rowsPerPageOptions={[5, 10, 25]}
+                          sx={{
+                            overflowX: "auto",
+                          }}
                         />
                       </>
                       )}
