@@ -733,278 +733,204 @@ export default function UserManagement() {
               </Typography>
 
               {users.length === 0 ? (
-                <Typography color="text.secondary">No users found.</Typography>
-              ) : (
-                <Box
-                  sx={{
-                    overflowX: "auto",
-                    display: {
-                      xs: "none",
-                      md: "block",
-                    },
-                  }}
-                >
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "14px",
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ textAlign: "left", backgroundColor: "#f1f5f9" }}>
-                        <th style={{ padding: "12px" }}>Full Name</th>
-                        <th style={{ padding: "12px" }}>Email</th>
-                        <th style={{ padding: "12px" }}>Role</th>
-                        <th style={{ padding: "12px" }}>Status</th>
-                        <th style={{ padding: "12px" }}>Created At</th>
-                        <th style={{ padding: "12px" }}>Change Role</th>
-                        <th style={{ padding: "12px" }}>Account</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {users.map((user) => {
-                        const isCurrentUser =
-                          user.email === localStorage.getItem("fraudguard_email");
-                        const isActive = user.active !== false;
-
-                        return (
-                          <tr
-                            key={user.id}
-                            style={{
-                              borderBottom: "1px solid #e2e8f0",
-                              opacity: isActive ? 1 : 0.65,
-                            }}
-                          >
-                            <td style={{ padding: "12px" }}>{user.fullName}</td>
-                            <td style={{ padding: "12px" }}>{user.email}</td>
-                            <td style={{ padding: "12px" }}>
-                              <Chip
-                                label={user.role}
-                                color={user.role === "ADMIN" ? "primary" : "default"}
-                                variant="outlined"
-                                size="small"
-                              />
-                            </td>
-                            <td style={{ padding: "12px" }}>
-                              <Chip
-                                label={isActive ? "ACTIVE" : "DISABLED"}
-                                color={isActive ? "success" : "error"}
-                                size="small"
-                                variant={isActive ? "filled" : "outlined"}
-                              />
-                            </td>
-                            <td style={{ padding: "12px" }}>
-                              {formatDate(user.createdAt)}
-                            </td>
-                            <td style={{ padding: "12px" }}>
-                              <Select
-                                size="small"
-                                value={user.role}
-                                onChange={(event) =>
-                                  updateUserRole(user.id, event.target.value)
-                                }
-                                disabled={isCurrentUser || !isActive}
-                              >
-                                <MenuItem value="ADMIN">ADMIN</MenuItem>
-                                <MenuItem value="FRAUD_ANALYST">
-                                  FRAUD_ANALYST
-                                </MenuItem>
-                                <MenuItem value="VIEWER">VIEWER</MenuItem>
-                              </Select>
-                            </td>
-                            <td style={{ padding: "12px" }}>
-                              <Stack
-                                direction={{ xs: "column", lg: "row" }}
-                                spacing={1}
-                                alignItems="flex-start"
-                              >
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={<LockReset />}
-                                  disabled={isCurrentUser}
-                                  onClick={() => openResetPasswordDialog(user)}
-                                >
-                                  Reset Password
-                                </Button>
-
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color={isActive ? "error" : "success"}
-                                  disabled={isCurrentUser}
-                                  onClick={() => openStatusDialog(user)}
-                                >
-                                  {isActive ? "Disable" : "Reactivate"}
-                                </Button>
-                              </Stack>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <Stack
-  spacing={2}
-  sx={{
-    display: {
-      xs: "flex",
-      md: "none",
-    },
-  }}
->
-  {users.map((user) => {
-    const isCurrentUser =
-      user.email === localStorage.getItem("fraudguard_email");
-
-    const isActive = user.active !== false;
-
-    return (
-      <Card
-        key={user.id}
-        variant="outlined"
-        sx={{
-          borderRadius: 3,
-          opacity: isActive ? 1 : 0.65,
+  <Typography color="text.secondary">
+    No users found.
+  </Typography>
+) : (
+  <>
+    {/* DESKTOP TABLE */}
+    <Box
+      sx={{
+        overflowX: "auto",
+        display: {
+          xs: "none",
+          md: "block",
+        },
+      }}
+    >
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: "14px",
         }}
       >
-        <CardContent>
-          <Stack spacing={2}>
-            <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Full Name
-              </Typography>
+        {/* Keep your existing thead and tbody here */}
+      </table>
+    </Box>
 
-              <Typography fontWeight="bold">
-                {user.fullName}
-              </Typography>
-            </Box>
+    {/* MOBILE USER CARDS */}
+    <Stack
+      spacing={2}
+      sx={{
+        display: {
+          xs: "flex",
+          md: "none",
+        },
+      }}
+    >
+      {users.map((user) => {
+        const isCurrentUser =
+          user.email === localStorage.getItem(
+            "fraudguard_email"
+          );
 
-            <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Email
-              </Typography>
+        const isActive = user.active !== false;
 
-              <Typography
-                sx={{
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {user.email}
-              </Typography>
-            </Box>
+        return (
+          <Card
+            key={user.id}
+            variant="outlined"
+            sx={{
+              borderRadius: 3,
+              opacity: isActive ? 1 : 0.65,
+            }}
+          >
+            <CardContent>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Full Name
+                  </Typography>
 
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              useFlexGap
-            >
-              <Chip
-                label={user.role}
-                color={
-                  user.role === "ADMIN"
-                    ? "primary"
-                    : "default"
-                }
-                variant="outlined"
-                size="small"
-              />
-
-              <Chip
-                label={isActive ? "ACTIVE" : "DISABLED"}
-                color={isActive ? "success" : "error"}
-                size="small"
-                variant={isActive ? "filled" : "outlined"}
-              />
-            </Stack>
-
-            <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Created At
-              </Typography>
-
-              <Typography>
-                {formatDate(user.createdAt)}
-              </Typography>
-            </Box>
-
-            <Divider />
-
-            <FormControl fullWidth>
-              <InputLabel>Change Role</InputLabel>
-
-              <Select
-                label="Change Role"
-                value={user.role}
-                onChange={(event) =>
-                  updateUserRole(
-                    user.id,
-                    event.target.value
-                  )
-                }
-                disabled={isCurrentUser || !isActive}
-              >
-                <MenuItem value="ADMIN">
-                  ADMIN
-                </MenuItem>
-
-                <MenuItem value="FRAUD_ANALYST">
-                  FRAUD_ANALYST
-                </MenuItem>
-
-                <MenuItem value="VIEWER">
-                  VIEWER
-                </MenuItem>
-              </Select>
-            </FormControl>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<LockReset />}
-              disabled={isCurrentUser}
-              onClick={() =>
-                openResetPasswordDialog(user)
-              }
-            >
-              Reset Password
-            </Button>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              color={isActive ? "error" : "success"}
-              disabled={isCurrentUser}
-              onClick={() =>
-                openStatusDialog(user)
-              }
-            >
-              {isActive ? "Disable" : "Reactivate"}
-            </Button>
-          </Stack>
-        </CardContent>
-      </Card>
-    );
-  })}
-</Stack>
+                  <Typography fontWeight="bold">
+                    {user.fullName}
+                  </Typography>
                 </Box>
-              )}
+
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Email
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {user.email}
+                  </Typography>
+                </Box>
+
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Chip
+                    label={user.role}
+                    color={
+                      user.role === "ADMIN"
+                        ? "primary"
+                        : "default"
+                    }
+                    variant="outlined"
+                    size="small"
+                  />
+
+                  <Chip
+                    label={
+                      isActive ? "ACTIVE" : "DISABLED"
+                    }
+                    color={
+                      isActive ? "success" : "error"
+                    }
+                    size="small"
+                    variant={
+                      isActive ? "filled" : "outlined"
+                    }
+                  />
+                </Stack>
+
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Created At
+                  </Typography>
+
+                  <Typography>
+                    {formatDate(user.createdAt)}
+                  </Typography>
+                </Box>
+
+                <Divider />
+
+                <FormControl fullWidth>
+                  <InputLabel>Change Role</InputLabel>
+
+                  <Select
+                    label="Change Role"
+                    value={user.role}
+                    onChange={(event) =>
+                      updateUserRole(
+                        user.id,
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      isCurrentUser || !isActive
+                    }
+                  >
+                    <MenuItem value="ADMIN">
+                      ADMIN
+                    </MenuItem>
+
+                    <MenuItem value="FRAUD_ANALYST">
+                      FRAUD_ANALYST
+                    </MenuItem>
+
+                    <MenuItem value="VIEWER">
+                      VIEWER
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<LockReset />}
+                  disabled={isCurrentUser}
+                  onClick={() =>
+                    openResetPasswordDialog(user)
+                  }
+                >
+                  Reset Password
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color={
+                    isActive ? "error" : "success"
+                  }
+                  disabled={isCurrentUser}
+                  onClick={() =>
+                    openStatusDialog(user)
+                  }
+                >
+                  {isActive
+                    ? "Disable"
+                    : "Reactivate"}
+                </Button>
+              </Stack>
             </CardContent>
           </Card>
-
-
+        );
+      })}
+    </Stack>
+  </>
+)}
+           </CardContent>
+          </Card>
 
           <Dialog
             open={addUserOpen}
