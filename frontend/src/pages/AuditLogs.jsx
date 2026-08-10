@@ -18,6 +18,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  IconButton,
   Stack,
   TablePagination,
   Toolbar,
@@ -29,6 +30,7 @@ import {
   DashboardCustomize,
   History,
   ManageAccounts,
+  Menu,
   NotificationsActive,
   Person,
   ReceiptLong,
@@ -101,22 +103,17 @@ const sidebarItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
@@ -124,50 +121,77 @@ function Sidebar() {
           FraudGuard AI
         </Typography>
 
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#94a3b8",
+            mt: 0.5,
+          }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
-  .filter((item) =>
-    item.roles.includes(localStorage.getItem("fraudguard_role"))
-  )
-  .map((item) => {
-          const isActive = location.pathname === item.path;
+          .filter((item) =>
+            item.roles.includes(
+              localStorage.getItem("fraudguard_role")
+            )
+          )
+          .map((item) => {
+            const isActive =
+              location.pathname === item.path;
 
-          return (
-            <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                sx={{
-                  borderRadius: 2,
-                  backgroundColor: isActive ? "#2563eb" : "transparent",
-                  color: isActive ? "#ffffff" : "#cbd5e1",
-                  textDecoration: "none",
-                  "&:hover": {
-                    backgroundColor: isActive ? "#2563eb" : "#1e293b",
-                  },
-                }}
+            return (
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
               >
-                <ListItemIcon
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={onClose}
                   sx={{
-                    color: isActive ? "#ffffff" : "#94a3b8",
-                    minWidth: 40,
+                    borderRadius: 2,
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
+                    textDecoration: "none",
+
+                    "&:hover": {
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
+                    },
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
+                  <ListItemIcon
+                    sx={{
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
 
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
       </List>
 
       <Box sx={{ flexGrow: 1 }} />
@@ -181,11 +205,17 @@ function Sidebar() {
           }}
         >
           <CardContent>
-            <Typography variant="body2" fontWeight="bold">
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+            >
               System Status
             </Typography>
 
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "#94a3b8" }}
+            >
               Backend connected
             </Typography>
 
@@ -203,7 +233,54 @@ function Sidebar() {
           </CardContent>
         </Card>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight: "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
 
@@ -220,11 +297,20 @@ function formatDateTime(value) {
 }
 
 export default function AuditLogs() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  function handleMobileMenuOpen() {
+    setMobileOpen(true);
+  }
+
+  function handleMobileMenuClose() {
+    setMobileOpen(false);
+  }
 
   async function loadLogs() {
     try {
@@ -306,13 +392,22 @@ function buildAuditLogsCsvUrl() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={handleMobileMenuClose}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${drawerWidth}px)`,
+
+          width: {
+            xs: "100%",
+            md: `calc(100% - ${drawerWidth}px)`,
+          },
+
+          minWidth: 0,
           minHeight: "100vh",
         }}
       >
@@ -326,22 +421,61 @@ function buildAuditLogsCsvUrl() {
           }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Audit Logs
-              </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                minWidth: 0,
+              }}
+            >
+              <IconButton
+                onClick={handleMobileMenuOpen}
+                sx={{
+                  display: {
+                    xs: "inline-flex",
+                    md: "none",
+                  },
+                }}
+              >
+                <Menu />
+              </IconButton>
 
-              <Typography variant="caption" color="text.secondary">
-                Track system actions, fraud review decisions, and transaction activity
-              </Typography>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  noWrap
+                >
+                  Audit Logs
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: {
+                      xs: "none",
+                      sm: "block",
+                    },
+                  }}
+                >
+                  Track system actions, fraud review decisions, and transaction activity
+                </Typography>
+              </Box>
             </Box>
-
             <Stack direction="row" spacing={2} alignItems="center">
               <Chip
-  label={localStorage.getItem("fraudguard_role") || "USER"}
-  color="primary"
-  variant="outlined"
-/>
+                label={localStorage.getItem("fraudguard_role") || "USER"}
+                color="primary"
+                variant="outlined"
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "inline-flex",
+                  },
+                }}
+              />
 
 <Button
   variant="outlined"
@@ -357,19 +491,49 @@ function buildAuditLogsCsvUrl() {
   Logout
 </Button>
 
-<Avatar sx={{ bgcolor: "#2563eb" }}>
+<Avatar
+  sx={{
+    bgcolor: "#2563eb",
+    display: {
+      xs: "none",
+      sm: "flex",
+    },
+  }}
+>
   {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
 </Avatar>
             </Stack>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            py: {
+              xs: 3,
+              md: 4,
+            },
+
+            px: {
+              xs: 2,
+              sm: 3,
+            },
+          }}
+        >
           <Box mb={4}>
-            <Typography variant="h4" fontWeight="bold">
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              sx={{
+                fontSize: {
+                  xs: "1.8rem",
+                  sm: "2.125rem",
+                },
+                lineHeight: 1.2,
+              }}
+            >
               System Audit Trail
             </Typography>
-
             <Typography color="text.secondary" mt={1}>
               Review all important actions performed in FraudGuard AI.
             </Typography>
@@ -379,7 +543,15 @@ function buildAuditLogsCsvUrl() {
               href={logs.length > 0 ? buildAuditLogsCsvUrl() : undefined}
               download="fraudguard-audit-logs.csv"
               variant="contained"
-              sx={{ mt: 2, mb: 2 }}
+              sx={{
+                mt: 2,
+                mb: 2,
+
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+              }}
               onClick={(event) => {
                 if (!logs || logs.length === 0) {
                   event.preventDefault();
@@ -426,7 +598,15 @@ function buildAuditLogsCsvUrl() {
                 </Typography>
               ) : (
                 <>
-                  <Box sx={{ overflowX: "auto" }}>
+                  <Box
+                    sx={{
+                      overflowX: "auto",
+                      display: {
+                        xs: "none",
+                        md: "block",
+                      },
+                    }}
+                  >
                     <table
                       style={{
                         width: "100%",
@@ -480,6 +660,116 @@ function buildAuditLogsCsvUrl() {
                     </table>
                   </Box>
 
+                  <Stack
+  spacing={2}
+  sx={{
+    display: {
+      xs: "flex",
+      md: "none",
+    },
+  }}
+>
+  {paginatedLogs.map((log) => (
+    <Card
+      key={log.id}
+      variant="outlined"
+      sx={{
+        borderRadius: 3,
+      }}
+    >
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Action
+            </Typography>
+
+            <Box mt={0.5}>
+              <Chip
+                label={log.action}
+                size="small"
+                color={getActionColor(log.action)}
+                variant="outlined"
+              />
+            </Box>
+          </Box>
+
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Reference
+            </Typography>
+
+            <Typography
+              fontWeight="bold"
+              sx={{
+                overflowWrap: "anywhere",
+              }}
+            >
+              {log.transactionReference || "N/A"}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Performed By
+            </Typography>
+
+            <Typography
+              fontWeight="bold"
+              sx={{
+                overflowWrap: "anywhere",
+              }}
+            >
+              {log.performedBy || "N/A"}
+            </Typography>
+          </Box>
+
+          <Divider />
+
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Description
+            </Typography>
+
+            <Typography
+              sx={{
+                overflowWrap: "anywhere",
+              }}
+            >
+              {log.description || "N/A"}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Date / Time
+            </Typography>
+
+            <Typography fontWeight="bold">
+              {formatDateTime(log.createdAt)}
+            </Typography>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  ))}
+</Stack>
+
                   <TablePagination
                     component="div"
                     count={logs.length}
@@ -488,6 +778,9 @@ function buildAuditLogsCsvUrl() {
                     rowsPerPage={rowsPerPage}
                     onRowsPerPageChange={handleChangeRowsPerPage}
                     rowsPerPageOptions={[5, 10, 25]}
+                    sx={{
+                      overflowX: "auto",
+                    }}
                   />
                 </>
               )}
