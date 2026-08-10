@@ -303,6 +303,7 @@ export default function UserManagement() {
   const isMobile = useMediaQuery("(max-width:899px)");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -329,15 +330,31 @@ export default function UserManagement() {
   }
 
   async function loadUsers() {
-    try {
-      const response = await api.get("/users");
-      setUsers(response.data);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load users. Only ADMIN can access this page.");
-    }
+  try {
+    setLoadingUsers(true);
+
+    const response = await api.get("/users");
+
+    const userList = Array.isArray(response.data)
+      ? response.data
+      : Array.isArray(response.data?.content)
+        ? response.data.content
+        : Array.isArray(response.data?.users)
+          ? response.data.users
+          : [];
+
+    setUsers(userList);
+    setError("");
+  } catch (err) {
+    console.error(err);
+    setUsers([]);
+    setError(
+      "Failed to load users. Only ADMIN can access this page."
+    );
+  } finally {
+    setLoadingUsers(false);
   }
+}
 
   async function updateUserRole(userId, role) {
     try {
@@ -732,7 +749,22 @@ export default function UserManagement() {
                 Registered Users
               </Typography>
 
-              {users.length === 0 ? (
+              {loadingUsers ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    py: 2,
+                  }}
+                >
+                  <CircularProgress size={26} />
+
+                  <Typography color="text.secondary">
+                    Loading users...
+                  </Typography>
+                </Box>
+                ) : users.length === 0 ? (
   <Typography color="text.secondary">
     No users found.
   </Typography>
@@ -749,14 +781,150 @@ export default function UserManagement() {
       }}
     >
       <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: "14px",
-        }}
-      >
-        {/* Keep your existing thead and tbody here */}
-      </table>
+  style={{
+    width: "100%",
+    borderCollapse: "collapse",
+    fontSize: "14px",
+  }}
+>
+  <thead>
+    <tr
+      style={{
+        textAlign: "left",
+        backgroundColor: "#f1f5f9",
+      }}
+    >
+      <th style={{ padding: "12px" }}>Full Name</th>
+      <th style={{ padding: "12px" }}>Email</th>
+      <th style={{ padding: "12px" }}>Role</th>
+      <th style={{ padding: "12px" }}>Status</th>
+      <th style={{ padding: "12px" }}>Created At</th>
+      <th style={{ padding: "12px" }}>Change Role</th>
+      <th style={{ padding: "12px" }}>Account</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {users.map((user) => {
+      const isCurrentUser =
+        user.email ===
+        localStorage.getItem("fraudguard_email");
+
+      const isActive = user.active !== false;
+
+      return (
+        <tr
+          key={user.id}
+          style={{
+            borderBottom: "1px solid #e2e8f0",
+            opacity: isActive ? 1 : 0.65,
+          }}
+        >
+          <td style={{ padding: "12px" }}>
+            {user.fullName}
+          </td>
+
+          <td style={{ padding: "12px" }}>
+            {user.email}
+          </td>
+
+          <td style={{ padding: "12px" }}>
+            <Chip
+              label={user.role}
+              color={
+                user.role === "ADMIN"
+                  ? "primary"
+                  : "default"
+              }
+              variant="outlined"
+              size="small"
+            />
+          </td>
+
+          <td style={{ padding: "12px" }}>
+            <Chip
+              label={isActive ? "ACTIVE" : "DISABLED"}
+              color={isActive ? "success" : "error"}
+              size="small"
+              variant={
+                isActive ? "filled" : "outlined"
+              }
+            />
+          </td>
+
+          <td style={{ padding: "12px" }}>
+            {formatDate(user.createdAt)}
+          </td>
+
+          <td style={{ padding: "12px" }}>
+            <Select
+              size="small"
+              value={user.role}
+              onChange={(event) =>
+                updateUserRole(
+                  user.id,
+                  event.target.value
+                )
+              }
+              disabled={isCurrentUser || !isActive}
+            >
+              <MenuItem value="ADMIN">
+                ADMIN
+              </MenuItem>
+
+              <MenuItem value="FRAUD_ANALYST">
+                FRAUD_ANALYST
+              </MenuItem>
+
+              <MenuItem value="VIEWER">
+                VIEWER
+              </MenuItem>
+            </Select>
+          </td>
+
+          <td style={{ padding: "12px" }}>
+            <Stack
+              direction={{
+                xs: "column",
+                lg: "row",
+              }}
+              spacing={1}
+              alignItems="flex-start"
+            >
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<LockReset />}
+                disabled={isCurrentUser}
+                onClick={() =>
+                  openResetPasswordDialog(user)
+                }
+              >
+                Reset Password
+              </Button>
+
+              <Button
+                size="small"
+                variant="outlined"
+                color={
+                  isActive ? "error" : "success"
+                }
+                disabled={isCurrentUser}
+                onClick={() =>
+                  openStatusDialog(user)
+                }
+              >
+                {isActive
+                  ? "Disable"
+                  : "Reactivate"}
+              </Button>
+            </Stack>
+          </td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>
     </Box>
 
     {/* MOBILE USER CARDS */}
