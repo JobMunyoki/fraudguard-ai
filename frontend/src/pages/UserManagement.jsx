@@ -702,7 +702,22 @@ export default function UserManagement() {
               </Typography>
             </Box>
 
-            Add User
+            <Button
+              variant="contained"
+              startIcon={<PersonAdd />}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+              }}
+              onClick={() => {
+                setError("");
+                setAddUserOpen(true);
+              }}
+            >
+              Add User
+            </Button>
           </Box>
 
           {error && (
