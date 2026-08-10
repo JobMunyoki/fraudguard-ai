@@ -33,6 +33,7 @@ import {
   Stack,
   TextField,
   Toolbar,
+  useMediaQuery,
   Typography,
 } from "@mui/material";
 import {
@@ -42,6 +43,7 @@ import {
   History,
   LockReset,
   ManageAccounts,
+  Menu,
   NotificationsActive,
   Person,
   PersonAdd,
@@ -124,35 +126,38 @@ const sidebarItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
   const role = localStorage.getItem("fraudguard_role");
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" fontWeight="bold">
           FraudGuard AI
         </Typography>
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+
+        <Typography
+          variant="body2"
+          sx={{ color: "#94a3b8", mt: 0.5 }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
@@ -161,28 +166,42 @@ function Sidebar() {
             const isActive = location.pathname === item.path;
 
             return (
-              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
+              >
                 <ListItemButton
                   component={Link}
                   to={item.path}
+                  onClick={onClose}
                   sx={{
                     borderRadius: 2,
-                    backgroundColor: isActive ? "#2563eb" : "transparent",
-                    color: isActive ? "#ffffff" : "#cbd5e1",
-                    textDecoration: "none",
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
+
                     "&:hover": {
-                      backgroundColor: isActive ? "#2563eb" : "#1e293b",
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
                     },
                   }}
                 >
                   <ListItemIcon
                     sx={{
-                      color: isActive ? "#ffffff" : "#94a3b8",
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
                       minWidth: 40,
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
+
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
@@ -193,14 +212,25 @@ function Sidebar() {
       <Box sx={{ flexGrow: 1 }} />
 
       <Box sx={{ p: 2 }}>
-        <Card sx={{ backgroundColor: "#1e293b", color: "#ffffff", borderRadius: 3 }}>
+        <Card
+          sx={{
+            backgroundColor: "#1e293b",
+            color: "#ffffff",
+            borderRadius: 3,
+          }}
+        >
           <CardContent>
             <Typography variant="body2" fontWeight="bold">
               System Status
             </Typography>
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+
+            <Typography
+              variant="caption"
+              sx={{ color: "#94a3b8" }}
+            >
               Backend connected
             </Typography>
+
             <Box mt={1}>
               <Chip
                 label="Online"
@@ -215,7 +245,52 @@ function Sidebar() {
           </CardContent>
         </Card>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight: "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
 
@@ -225,6 +300,8 @@ function formatDate(value) {
 }
 
 export default function UserManagement() {
+  const isMobile = useMediaQuery("(max-width:899px)");
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -242,6 +319,14 @@ export default function UserManagement() {
   const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
   const [showConfirmTemporaryPassword, setShowConfirmTemporaryPassword] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+
+  function handleMobileMenuOpen() {
+    setMobileOpen(true);
+  }
+
+  function handleMobileMenuClose() {
+    setMobileOpen(false);
+  }
 
   async function loadUsers() {
     try {
@@ -458,13 +543,22 @@ export default function UserManagement() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={handleMobileMenuClose}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${drawerWidth}px)`,
+
+          width: {
+            xs: "100%",
+            md: `calc(100% - ${drawerWidth}px)`,
+          },
+
+          minWidth: 0,
           minHeight: "100vh",
         }}
       >
@@ -478,20 +572,65 @@ export default function UserManagement() {
           }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                User Management
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Manage FraudGuard AI users and access roles
-              </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                minWidth: 0,
+              }}
+            >
+              <IconButton
+                onClick={handleMobileMenuOpen}
+                sx={{
+                  display: {
+                    xs: "inline-flex",
+                    md: "none",
+                  },
+                }}
+              >
+                <Menu />
+              </IconButton>
+
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  noWrap
+                >
+                  User Management
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: {
+                      xs: "none",
+                      sm: "block",
+                    },
+                  }}
+                >
+                  Manage FraudGuard AI users and access roles
+                </Typography>
+              </Box>
             </Box>
 
-            <Stack direction="row" spacing={2} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={{ xs: 0.5, sm: 2 }}
+              alignItems="center"
+            >
               <Chip
                 label={localStorage.getItem("fraudguard_role") || "USER"}
                 color="primary"
                 variant="outlined"
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "inline-flex",
+                  },
+                }}
               />
 
               <Button
@@ -508,14 +647,34 @@ export default function UserManagement() {
                 Logout
               </Button>
 
-              <Avatar sx={{ bgcolor: "#2563eb" }}>
+              <Avatar
+                sx={{
+                  bgcolor: "#2563eb",
+                  display: {
+                    xs: "none",
+                    sm: "flex",
+                  },
+                }}
+              >
                 {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
               </Avatar>
             </Stack>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            py: {
+              xs: 3,
+              md: 4,
+            },
+            px: {
+              xs: 2,
+              sm: 3,
+            },
+          }}
+        >
           <Box
             mb={4}
             display="flex"
@@ -525,7 +684,17 @@ export default function UserManagement() {
             flexWrap="wrap"
           >
             <Box>
-              <Typography variant="h4" fontWeight="bold">
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                sx={{
+                  fontSize: {
+                    xs: "1.8rem",
+                    sm: "2.125rem",
+                  },
+                  lineHeight: 1.2,
+                }}
+              >
                 System Users
               </Typography>
               <Typography color="text.secondary" mt={1}>
@@ -533,16 +702,7 @@ export default function UserManagement() {
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
-              startIcon={<PersonAdd />}
-              onClick={() => {
-                setError("");
-                setAddUserOpen(true);
-              }}
-            >
-              Add User
-            </Button>
+            Add User
           </Box>
 
           {error && (
@@ -560,7 +720,15 @@ export default function UserManagement() {
               {users.length === 0 ? (
                 <Typography color="text.secondary">No users found.</Typography>
               ) : (
-                <Box sx={{ overflowX: "auto" }}>
+                <Box
+                  sx={{
+                    overflowX: "auto",
+                    display: {
+                      xs: "none",
+                      md: "block",
+                    },
+                  }}
+                >
                   <table
                     style={{
                       width: "100%",
@@ -663,6 +831,159 @@ export default function UserManagement() {
                       })}
                     </tbody>
                   </table>
+                  <Stack
+  spacing={2}
+  sx={{
+    display: {
+      xs: "flex",
+      md: "none",
+    },
+  }}
+>
+  {users.map((user) => {
+    const isCurrentUser =
+      user.email === localStorage.getItem("fraudguard_email");
+
+    const isActive = user.active !== false;
+
+    return (
+      <Card
+        key={user.id}
+        variant="outlined"
+        sx={{
+          borderRadius: 3,
+          opacity: isActive ? 1 : 0.65,
+        }}
+      >
+        <CardContent>
+          <Stack spacing={2}>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Full Name
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {user.fullName}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Email
+              </Typography>
+
+              <Typography
+                sx={{
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {user.email}
+              </Typography>
+            </Box>
+
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+            >
+              <Chip
+                label={user.role}
+                color={
+                  user.role === "ADMIN"
+                    ? "primary"
+                    : "default"
+                }
+                variant="outlined"
+                size="small"
+              />
+
+              <Chip
+                label={isActive ? "ACTIVE" : "DISABLED"}
+                color={isActive ? "success" : "error"}
+                size="small"
+                variant={isActive ? "filled" : "outlined"}
+              />
+            </Stack>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Created At
+              </Typography>
+
+              <Typography>
+                {formatDate(user.createdAt)}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            <FormControl fullWidth>
+              <InputLabel>Change Role</InputLabel>
+
+              <Select
+                label="Change Role"
+                value={user.role}
+                onChange={(event) =>
+                  updateUserRole(
+                    user.id,
+                    event.target.value
+                  )
+                }
+                disabled={isCurrentUser || !isActive}
+              >
+                <MenuItem value="ADMIN">
+                  ADMIN
+                </MenuItem>
+
+                <MenuItem value="FRAUD_ANALYST">
+                  FRAUD_ANALYST
+                </MenuItem>
+
+                <MenuItem value="VIEWER">
+                  VIEWER
+                </MenuItem>
+              </Select>
+            </FormControl>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<LockReset />}
+              disabled={isCurrentUser}
+              onClick={() =>
+                openResetPasswordDialog(user)
+              }
+            >
+              Reset Password
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              color={isActive ? "error" : "success"}
+              disabled={isCurrentUser}
+              onClick={() =>
+                openStatusDialog(user)
+              }
+            >
+              {isActive ? "Disable" : "Reactivate"}
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+    );
+  })}
+</Stack>
                 </Box>
               )}
             </CardContent>
@@ -675,6 +996,7 @@ export default function UserManagement() {
             onClose={closeAddUserDialog}
             fullWidth
             maxWidth="sm"
+            fullScreen={isMobile}
           >
             <Box component="form" onSubmit={createUser}>
               <DialogTitle>Add FraudGuard User</DialogTitle>
@@ -762,7 +1084,32 @@ export default function UserManagement() {
                 </Stack>
               </DialogContent>
 
-              <DialogActions sx={{ px: 3, py: 2 }}>
+              <DialogActions
+  sx={{
+    px: {
+      xs: 2,
+      sm: 3,
+    },
+    py: 2,
+    flexDirection: {
+      xs: "column",
+      sm: "row",
+    },
+    alignItems: {
+      xs: "stretch",
+      sm: "center",
+    },
+    gap: 1,
+
+    "& .MuiButton-root": {
+      margin: 0,
+      width: {
+        xs: "100%",
+        sm: "auto",
+      },
+    },
+  }}
+>
                 <Button onClick={closeAddUserDialog} disabled={creatingUser}>
                   Cancel
                 </Button>
@@ -783,6 +1130,7 @@ export default function UserManagement() {
             onClose={closeResetPasswordDialog}
             fullWidth
             maxWidth="sm"
+            fullScreen={isMobile}
           >
             <Box component="form" onSubmit={resetUserPassword}>
               <DialogTitle>Reset User Password</DialogTitle>
@@ -920,6 +1268,7 @@ export default function UserManagement() {
             onClose={closeStatusDialog}
             fullWidth
             maxWidth="xs"
+            fullScreen={isMobile}
           >
             <DialogTitle>
               {selectedUser?.active === false
@@ -935,7 +1284,32 @@ export default function UserManagement() {
               </DialogContentText>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 2 }}>
+            <DialogActions
+  sx={{
+    px: {
+      xs: 2,
+      sm: 3,
+    },
+    pb: 2,
+    flexDirection: {
+      xs: "column",
+      sm: "row",
+    },
+    alignItems: {
+      xs: "stretch",
+      sm: "center",
+    },
+    gap: 1,
+
+    "& .MuiButton-root": {
+      margin: 0,
+      width: {
+        xs: "100%",
+        sm: "auto",
+      },
+    },
+  }}
+>
               <Button onClick={closeStatusDialog} disabled={updatingStatus}>
                 Cancel
               </Button>
