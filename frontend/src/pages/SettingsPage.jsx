@@ -17,6 +17,7 @@ import {
   FormControlLabel,
   Grid,
   InputLabel,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -38,6 +39,7 @@ import {
   DashboardCustomize,
   History,
   ManageAccounts,
+  Menu,
   NotificationsActive,
   Person,
   ReceiptLong,
@@ -127,22 +129,18 @@ const defaultSettings = {
   sessionTimeout: 30,
 };
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
+  const role = localStorage.getItem("fraudguard_role");
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
@@ -150,50 +148,72 @@ function Sidebar() {
           FraudGuard AI
         </Typography>
 
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#94a3b8",
+            mt: 0.5,
+          }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
-  .filter((item) =>
-    item.roles.includes(localStorage.getItem("fraudguard_role"))
-  )
-  .map((item) => {
-          const isActive = location.pathname === item.path;
+          .filter((item) => item.roles.includes(role))
+          .map((item) => {
+            const isActive =
+              location.pathname === item.path;
 
-          return (
-            <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                sx={{
-                  borderRadius: 2,
-                  backgroundColor: isActive ? "#2563eb" : "transparent",
-                  color: isActive ? "#ffffff" : "#cbd5e1",
-                  textDecoration: "none",
-                  "&:hover": {
-                    backgroundColor: isActive ? "#2563eb" : "#1e293b",
-                  },
-                }}
+            return (
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
               >
-                <ListItemIcon
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  onClick={onClose}
                   sx={{
-                    color: isActive ? "#ffffff" : "#94a3b8",
-                    minWidth: 40,
+                    borderRadius: 2,
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
+
+                    "&:hover": {
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
+                    },
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
+                  <ListItemIcon
+                    sx={{
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
 
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
       </List>
 
       <Box sx={{ flexGrow: 1 }} />
@@ -207,11 +227,17 @@ function Sidebar() {
           }}
         >
           <CardContent>
-            <Typography variant="body2" fontWeight="bold">
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+            >
               System Status
             </Typography>
 
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "#94a3b8" }}
+            >
               Backend connected
             </Typography>
 
@@ -229,7 +255,54 @@ function Sidebar() {
           </CardContent>
         </Card>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight: "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
 
@@ -263,6 +336,7 @@ function SectionHeader({ icon, title, subtitle }) {
 }
 
 export default function SettingsPage() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [settings, setSettings] = useState(defaultSettings);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -282,6 +356,14 @@ const [slaError, setSlaError] = useState("");
 const [slaSuccess, setSlaSuccess] = useState("");
 const [slaUpdatedBy, setSlaUpdatedBy] = useState("");
 const [slaUpdatedAt, setSlaUpdatedAt] = useState("");
+
+function handleMobileMenuOpen() {
+  setMobileOpen(true);
+}
+
+function handleMobileMenuClose() {
+  setMobileOpen(false);
+}
 
   useEffect(() => {
     const savedSettings = localStorage.getItem("fraudguard-settings");
@@ -454,13 +536,22 @@ function resetSlaDefaults() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={handleMobileMenuClose}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${drawerWidth}px)`,
+
+          width: {
+            xs: "100%",
+            md: `calc(100% - ${drawerWidth}px)`,
+          },
+
+          minWidth: 0,
           minHeight: "100vh",
         }}
       >
@@ -474,22 +565,66 @@ function resetSlaDefaults() {
           }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Settings
-              </Typography>
+            <Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    minWidth: 0,
+  }}
+>
+  <IconButton
+    onClick={handleMobileMenuOpen}
+    sx={{
+      display: {
+        xs: "inline-flex",
+        md: "none",
+      },
+    }}
+  >
+    <Menu />
+  </IconButton>
 
-              <Typography variant="caption" color="text.secondary">
-                Manage user profile, risk thresholds, alerts, and security options
-              </Typography>
-            </Box>
+  <Box sx={{ minWidth: 0 }}>
+    <Typography
+      variant="h6"
+      fontWeight="bold"
+      noWrap
+    >
+      Settings
+    </Typography>
 
-            <Stack direction="row" spacing={2} alignItems="center">
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{
+        display: {
+          xs: "none",
+          sm: "block",
+        },
+      }}
+    >
+      Manage user profile, risk thresholds, alerts, and security options
+    </Typography>
+  </Box>
+</Box>
+
+            <Stack
+              direction="row"
+              spacing={{ xs: 0.5, sm: 2 }}
+              alignItems="center"
+            >
               <Chip
-  label={localStorage.getItem("fraudguard_role") || "USER"}
-  color="primary"
-  variant="outlined"
-/>
+                label={localStorage.getItem("fraudguard_role") || "USER"}
+                color="primary"
+                variant="outlined"
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "inline-flex",
+                  },
+                }}
+              />
 
 <Button
   variant="outlined"
@@ -505,14 +640,35 @@ function resetSlaDefaults() {
   Logout
 </Button>
 
-<Avatar sx={{ bgcolor: "#2563eb" }}>
+<Avatar
+  sx={{
+    bgcolor: "#2563eb",
+    display: {
+      xs: "none",
+      sm: "flex",
+    },
+  }}
+>
   {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
 </Avatar>
             </Stack>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            py: {
+              xs: 3,
+              md: 4,
+            },
+
+            px: {
+              xs: 2,
+              sm: 3,
+            },
+          }}
+        >
           <Box
             mb={4}
             display="flex"
@@ -522,7 +678,17 @@ function resetSlaDefaults() {
             gap={2}
           >
             <Box>
-              <Typography variant="h4" fontWeight="bold">
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                sx={{
+                  fontSize: {
+                    xs: "1.8rem",
+                    sm: "2.125rem",
+                  },
+                  lineHeight: 1.2,
+                }}
+              >
                 System Settings
               </Typography>
 
@@ -531,7 +697,26 @@ function resetSlaDefaults() {
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={2}>
+            <Stack
+              direction={{
+                xs: "column",
+                sm: "row",
+              }}
+              spacing={2}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+
+                "& .MuiButton-root": {
+                  width: {
+                    xs: "100%",
+                    sm: "auto",
+                  },
+                },
+              }}
+            >
               <Button variant="outlined" onClick={handleResetSettings}>
                 Reset
               </Button>
@@ -549,12 +734,20 @@ function resetSlaDefaults() {
           <Card sx={{ borderRadius: 3, mb: 3 }}>
   <CardContent>
     <Box
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
-      flexWrap="wrap"
-      gap={2}
-      mb={2}
+      sx={{
+        display: "flex",
+        flexDirection: {
+          xs: "column",
+          sm: "row",
+        },
+        justifyContent: "space-between",
+        alignItems: {
+          xs: "flex-start",
+          sm: "center",
+        },
+        gap: 2,
+        mb: 2,
+      }}
     >
       <Box>
         <Typography variant="h5" fontWeight="bold">
@@ -775,7 +968,21 @@ function resetSlaDefaults() {
           </CardContent>
         </Card>
 
-        <Stack direction="row" spacing={2} flexWrap="wrap">
+        <Stack
+        direction={{
+          xs: "column",
+          sm: "row",
+        }}
+        spacing={2}
+        sx={{
+          "& .MuiButton-root": {
+            width: {
+              xs: "100%",
+              sm: "auto",
+            },
+          },
+        }}
+        >
           <Button
             variant="contained"
             onClick={saveSlaSettings}
@@ -809,8 +1016,16 @@ function resetSlaDefaults() {
   </CardContent>
 </Card>
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: 3,
+            }}
+          >
               <Card sx={{ borderRadius: 3, height: "100%" }}>
                 <CardContent>
                   <SectionHeader
@@ -846,9 +1061,7 @@ function resetSlaDefaults() {
                   </Stack>
                 </CardContent>
               </Card>
-            </Grid>
 
-            <Grid item xs={12} md={6}>
               <Card sx={{ borderRadius: 3, height: "100%" }}>
                 <CardContent>
                   <SectionHeader
@@ -902,9 +1115,7 @@ function resetSlaDefaults() {
                   </Box>
                 </CardContent>
               </Card>
-            </Grid>
 
-            <Grid item xs={12} md={6}>
               <Card sx={{ borderRadius: 3, height: "100%" }}>
                 <CardContent>
                   <SectionHeader
@@ -954,9 +1165,7 @@ function resetSlaDefaults() {
                   </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
+  
               <Card sx={{ borderRadius: 3, height: "100%" }}>
                 <CardContent>
                   <SectionHeader
@@ -1007,8 +1216,7 @@ function resetSlaDefaults() {
                   </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+          </Box>
 
           <Alert severity="info" sx={{ mt: 4 }}>
             These settings are currently saved in the browser using localStorage.
