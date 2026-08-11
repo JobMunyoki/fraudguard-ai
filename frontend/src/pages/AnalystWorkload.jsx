@@ -19,6 +19,7 @@ import {
   ListItemIcon,
   ListItemText,
   Stack,
+  IconButton,
   Toolbar,
   Typography,
 } from "@mui/material";
@@ -28,6 +29,7 @@ import {
   DashboardCustomize,
   History,
   ManageAccounts,
+  Menu,
   NotificationsActive,
   Person,
   ReceiptLong,
@@ -110,65 +112,86 @@ const sidebarItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const location = useLocation();
   const role = localStorage.getItem("fraudguard_role");
 
-  return (
-    <Drawer
-      variant="permanent"
+  const drawerContent = (
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e2e8f0",
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-        },
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f172a",
+        color: "#ffffff",
       }}
     >
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" fontWeight="bold">
           FraudGuard AI
         </Typography>
-        <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
+
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#94a3b8",
+            mt: 0.5,
+          }}
+        >
           Banking Fraud Detection
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       <List sx={{ px: 2, py: 2 }}>
         {sidebarItems
           .filter((item) => item.roles.includes(role))
           .map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path;
 
             return (
-              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+              <ListItem
+                key={item.label}
+                disablePadding
+                sx={{ mb: 1 }}
+              >
                 <ListItemButton
                   component={Link}
                   to={item.path}
+                  onClick={onClose}
                   sx={{
                     borderRadius: 2,
-                    backgroundColor: isActive ? "#2563eb" : "transparent",
-                    color: isActive ? "#ffffff" : "#cbd5e1",
-                    textDecoration: "none",
+                    backgroundColor: isActive
+                      ? "#2563eb"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : "#cbd5e1",
+
                     "&:hover": {
-                      backgroundColor: isActive ? "#2563eb" : "#1e293b",
+                      backgroundColor: isActive
+                        ? "#2563eb"
+                        : "#1e293b",
                     },
                   }}
                 >
                   <ListItemIcon
                     sx={{
-                      color: isActive ? "#ffffff" : "#94a3b8",
+                      color: isActive
+                        ? "#ffffff"
+                        : "#94a3b8",
                       minWidth: 40,
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
+
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
@@ -179,14 +202,28 @@ function Sidebar() {
       <Box sx={{ flexGrow: 1 }} />
 
       <Box sx={{ p: 2 }}>
-        <Card sx={{ backgroundColor: "#1e293b", color: "#ffffff", borderRadius: 3 }}>
+        <Card
+          sx={{
+            backgroundColor: "#1e293b",
+            color: "#ffffff",
+            borderRadius: 3,
+          }}
+        >
           <CardContent>
-            <Typography variant="body2" fontWeight="bold">
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+            >
               System Status
             </Typography>
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+
+            <Typography
+              variant="caption"
+              sx={{ color: "#94a3b8" }}
+            >
               Backend connected
             </Typography>
+
             <Box mt={1}>
               <Chip
                 label="Online"
@@ -201,7 +238,54 @@ function Sidebar() {
           </CardContent>
         </Card>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+          width: drawerWidth,
+          flexShrink: 0,
+
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            borderRight: "1px solid #e2e8f0",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
 
@@ -212,9 +296,18 @@ function getWorkloadLevel(totalCases) {
 }
 
 export default function AnalystWorkload() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [workload, setWorkload] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  function handleMobileMenuOpen() {
+    setMobileOpen(true);
+  }
+
+  function handleMobileMenuClose() {
+    setMobileOpen(false);
+  }
 
   async function loadWorkload() {
   try {
@@ -274,13 +367,22 @@ export default function AnalystWorkload() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={handleMobileMenuClose}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: `calc(100% - ${drawerWidth}px)`,
+
+          width: {
+            xs: "100%",
+            md: `calc(100% - ${drawerWidth}px)`,
+          },
+
+          minWidth: 0,
           minHeight: "100vh",
         }}
       >
@@ -294,20 +396,65 @@ export default function AnalystWorkload() {
           }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Analyst Workload
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Monitor fraud analyst case distribution
-              </Typography>
-            </Box>
+            <Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    minWidth: 0,
+  }}
+>
+  <IconButton
+    onClick={handleMobileMenuOpen}
+    sx={{
+      display: {
+        xs: "inline-flex",
+        md: "none",
+      },
+    }}
+  >
+    <Menu />
+  </IconButton>
 
-            <Stack direction="row" spacing={2} alignItems="center">
+  <Box sx={{ minWidth: 0 }}>
+    <Typography
+      variant="h6"
+      fontWeight="bold"
+      noWrap
+    >
+      Analyst Workload
+    </Typography>
+
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{
+        display: {
+          xs: "none",
+          sm: "block",
+        },
+      }}
+    >
+      Monitor fraud analyst case distribution
+    </Typography>
+  </Box>
+</Box>
+
+            <Stack
+              direction="row"
+              spacing={{ xs: 0.5, sm: 2 }}
+              alignItems="center"
+            >
               <Chip
                 label={localStorage.getItem("fraudguard_role") || "USER"}
                 color="primary"
                 variant="outlined"
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "inline-flex",
+                  },
+                }}
               />
 
               <Button
@@ -324,16 +471,46 @@ export default function AnalystWorkload() {
                 Logout
               </Button>
 
-              <Avatar sx={{ bgcolor: "#2563eb" }}>
+              <Avatar
+                sx={{
+                  bgcolor: "#2563eb",
+                  display: {
+                    xs: "none",
+                    sm: "flex",
+                  },
+                }}
+              >
                 {(localStorage.getItem("fraudguard_fullName") || "U").charAt(0)}
               </Avatar>
             </Stack>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            py: {
+              xs: 3,
+              md: 4,
+            },
+            px: {
+              xs: 2,
+              sm: 3,
+            },
+          }}
+        >
           <Box mb={4}>
-            <Typography variant="h4" fontWeight="bold">
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              sx={{
+                fontSize: {
+                  xs: "1.8rem",
+                  sm: "2.125rem",
+                },
+                lineHeight: 1.2,
+              }}
+            >
               Analyst Workload Dashboard
             </Typography>
 
@@ -388,7 +565,22 @@ export default function AnalystWorkload() {
 
           <Card sx={{ borderRadius: 3, mb: 3 }}>
             <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Box
+  sx={{
+    display: "flex",
+    flexDirection: {
+      xs: "column",
+      sm: "row",
+    },
+    justifyContent: "space-between",
+    alignItems: {
+      xs: "stretch",
+      sm: "center",
+    },
+    gap: 2,
+    mb: 2,
+  }}
+>
                 <Box>
                   <Typography variant="h6" fontWeight="bold">
                     Workload Chart
@@ -398,7 +590,16 @@ export default function AnalystWorkload() {
                   </Typography>
                 </Box>
 
-                <Button variant="outlined" onClick={loadWorkload}>
+                <Button
+                  variant="outlined"
+                  onClick={loadWorkload}
+                  sx={{
+                    width: {
+                      xs: "100%",
+                      sm: "auto",
+                    },
+                  }}
+                >
                   Refresh
                 </Button>
               </Box>
@@ -408,11 +609,27 @@ export default function AnalystWorkload() {
                   No fraud analysts found.
                 </Typography>
               ) : (
-                <Box sx={{ width: "100%", height: 360 }}>
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: {
+                      xs: 320,
+                      md: 360,
+                    },
+                    minWidth: 0,
+                  }}
+                >
                   <ResponsiveContainer>
                     <BarChart data={workload}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="fullName" />
+                      <XAxis
+                        dataKey="fullName"
+                        angle={-25}
+                        textAnchor="end"
+                        interval={0}
+                        height={70}
+                        tick={{ fontSize: 11 }}
+                      />
                       <YAxis allowDecimals={false} />
                       <Tooltip />
                       <Legend />
@@ -437,7 +654,16 @@ export default function AnalystWorkload() {
                   No workload records available.
                 </Typography>
               ) : (
-                <Box sx={{ overflowX: "auto" }}>
+                <>
+                <Box
+                  sx={{
+                    overflowX: "auto",
+                    display: {
+                      xs: "none",
+                      md: "block",
+                    },
+                  }}
+                >
                   <table
                     style={{
                       width: "100%",
@@ -507,6 +733,175 @@ export default function AnalystWorkload() {
                     </tbody>
                   </table>
                 </Box>
+                <Stack
+  spacing={2}
+  sx={{
+    display: {
+      xs: "flex",
+      md: "none",
+    },
+  }}
+>
+  {workload.map((item) => {
+    const workloadLevel = getWorkloadLevel(
+      item.totalAssignedCases
+    );
+
+    return (
+      <Card
+        key={item.userId}
+        variant="outlined"
+        sx={{
+          borderRadius: 3,
+        }}
+      >
+        <CardContent>
+          <Stack spacing={2}>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Analyst
+              </Typography>
+
+              <Typography fontWeight="bold">
+                {item.fullName}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Email
+              </Typography>
+
+              <Typography
+                sx={{
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {item.email}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Chip
+                label={workloadLevel.label}
+                color={workloadLevel.color}
+                size="small"
+              />
+            </Box>
+
+            <Divider />
+
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Total
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.totalAssignedCases}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Pending
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.pendingCases}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Under Review
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.underReviewCases}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  High Risk
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.highRiskCases}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Confirmed Fraud
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.confirmedFraudCases}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  False Positive
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.falsePositiveCases}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Resolved
+                </Typography>
+
+                <Typography fontWeight="bold">
+                  {item.resolvedCases}
+                </Typography>
+              </Box>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+    );
+  })}
+</Stack>
+</>   
               )}
             </CardContent>
           </Card>
