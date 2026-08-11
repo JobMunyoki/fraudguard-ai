@@ -14,100 +14,110 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ProfileService {
 
-    private final AppUserRepository appUserRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuditLogService auditLogService;
+        private static final String DEMO_ANALYST_EMAIL = "analyst.demo@fraudguard.ai";
 
-    public ProfileService(
-            AppUserRepository appUserRepository,
-            PasswordEncoder passwordEncoder,
-            AuditLogService auditLogService) {
-        this.appUserRepository = appUserRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.auditLogService = auditLogService;
-    }
+        private final AppUserRepository appUserRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final AuditLogService auditLogService;
 
-    public ProfileResponse getCurrentProfile() {
-        AppUser currentUser = getCurrentUser();
-        return new ProfileResponse(currentUser);
-    }
-
-    public ProfileResponse updateProfile(UpdateProfileRequest request) {
-        AppUser currentUser = getCurrentUser();
-
-        String oldName = currentUser.getFullName();
-
-        if (request.getFullName() == null
-                || request.getFullName().trim().isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Full name is required.");
+        public ProfileService(
+                        AppUserRepository appUserRepository,
+                        PasswordEncoder passwordEncoder,
+                        AuditLogService auditLogService) {
+                this.appUserRepository = appUserRepository;
+                this.passwordEncoder = passwordEncoder;
+                this.auditLogService = auditLogService;
         }
 
-        currentUser.setFullName(request.getFullName().trim());
-
-        AppUser savedUser = appUserRepository.save(currentUser);
-
-        auditLogService.createLog(
-                "PROFILE_UPDATED",
-                savedUser.getEmail(),
-                savedUser.getEmail(),
-                "User profile name changed from "
-                        + oldName
-                        + " to "
-                        + savedUser.getFullName());
-
-        return new ProfileResponse(savedUser);
-    }
-
-    public void changePassword(ChangePasswordRequest request) {
-        AppUser currentUser = getCurrentUser();
-
-        boolean currentPasswordMatches = passwordEncoder.matches(
-                request.getCurrentPassword(),
-                currentUser.getPassword());
-
-        if (!currentPasswordMatches) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Current password is incorrect.");
+        public ProfileResponse getCurrentProfile() {
+                AppUser currentUser = getCurrentUser();
+                return new ProfileResponse(currentUser);
         }
 
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "New password and confirmation password do not match.");
+        public ProfileResponse updateProfile(UpdateProfileRequest request) {
+                AppUser currentUser = getCurrentUser();
+
+                String oldName = currentUser.getFullName();
+
+                if (request.getFullName() == null
+                                || request.getFullName().trim().isEmpty()) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "Full name is required.");
+                }
+
+                currentUser.setFullName(request.getFullName().trim());
+
+                AppUser savedUser = appUserRepository.save(currentUser);
+
+                auditLogService.createLog(
+                                "PROFILE_UPDATED",
+                                savedUser.getEmail(),
+                                savedUser.getEmail(),
+                                "User profile name changed from "
+                                                + oldName
+                                                + " to "
+                                                + savedUser.getFullName());
+
+                return new ProfileResponse(savedUser);
         }
 
-        if (passwordEncoder.matches(
-                request.getNewPassword(),
-                currentUser.getPassword())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "New password must be different from the current password.");
+        public void changePassword(ChangePasswordRequest request) {
+                AppUser currentUser = getCurrentUser();
+
+                if (DEMO_ANALYST_EMAIL.equalsIgnoreCase(
+                                currentUser.getEmail())) {
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.FORBIDDEN,
+                                        "Password changes are disabled for the public demo account.");
+                }
+
+                boolean currentPasswordMatches = passwordEncoder.matches(
+                                request.getCurrentPassword(),
+                                currentUser.getPassword());
+
+                if (!currentPasswordMatches) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "Current password is incorrect.");
+                }
+
+                if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "New password and confirmation password do not match.");
+                }
+
+                if (passwordEncoder.matches(
+                                request.getNewPassword(),
+                                currentUser.getPassword())) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "New password must be different from the current password.");
+                }
+
+                currentUser.setPassword(
+                                passwordEncoder.encode(request.getNewPassword()));
+
+                appUserRepository.save(currentUser);
+
+                auditLogService.createLog(
+                                "PASSWORD_CHANGED",
+                                currentUser.getEmail(),
+                                currentUser.getEmail(),
+                                "User " + currentUser.getEmail() + " changed their password");
         }
 
-        currentUser.setPassword(
-                passwordEncoder.encode(request.getNewPassword()));
+        private AppUser getCurrentUser() {
+                String email = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication()
+                                .getName();
 
-        appUserRepository.save(currentUser);
-
-        auditLogService.createLog(
-                "PASSWORD_CHANGED",
-                currentUser.getEmail(),
-                currentUser.getEmail(),
-                "User " + currentUser.getEmail() + " changed their password");
-    }
-
-    private AppUser getCurrentUser() {
-        String email = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-
-        return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Current user not found."));
-    }
+                return appUserRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Current user not found."));
+        }
 }

@@ -19,6 +19,8 @@ import java.util.List;
 @Service
 public class UserManagementService {
 
+        private static final String DEMO_ANALYST_EMAIL = "analyst.demo@fraudguard.ai";
+
         private final AppUserRepository appUserRepository;
         private final AuditLogService auditLogService;
         private final PasswordEncoder passwordEncoder;
@@ -147,6 +149,14 @@ public class UserManagementService {
                         AdminResetPasswordRequest request) {
                 AppUser user = findUser(userId);
                 String performedBy = getAuthenticatedEmail();
+
+                if (DEMO_ANALYST_EMAIL.equalsIgnoreCase(
+                                user.getEmail())) {
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.FORBIDDEN,
+                                        "The public demo account password cannot be reset.");
+                }
 
                 if (user.getEmail().equalsIgnoreCase(performedBy)) {
                         throw new ResponseStatusException(

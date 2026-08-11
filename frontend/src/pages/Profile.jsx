@@ -42,6 +42,8 @@ import {
 } from "@mui/icons-material";
 import api from "../api/axiosConfig";
 
+const DEMO_EMAIL = "analyst.demo@fraudguard.ai";
+
 const drawerWidth = 260;
 
 const sidebarItems = [
@@ -257,6 +259,12 @@ export default function Profile() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const isDemoAccount =
+  (
+    profile?.email ||
+    localStorage.getItem("fraudguard_email") ||
+    ""
+  ).toLowerCase() === DEMO_EMAIL.toLowerCase();
 
   function handleMobileMenuOpen() {
     setMobileOpen(true);
@@ -295,8 +303,15 @@ export default function Profile() {
   }
 
   async function changePassword(event) {
-    event.preventDefault();
-    setError("");
+  event.preventDefault();
+  setError("");
+
+  if (isDemoAccount) {
+    setError(
+      "Password changes are disabled for the public demo account."
+    );
+    return;
+  }
 
     if (newPassword.length < 8) {
       setError("New password must contain at least 8 characters.");
@@ -590,6 +605,13 @@ export default function Profile() {
                   Use the eye icons to show or hide each password.
                 </Typography>
 
+                {isDemoAccount ? (
+                  <Alert severity="info">
+                    Password changes are disabled for the public demo account
+                    so the shared demo credentials remain available to everyone.
+                  </Alert>
+                ) : (
+
                 <Box component="form" onSubmit={changePassword}>
                   <TextField
                     label="Current Password"
@@ -738,6 +760,7 @@ export default function Profile() {
                       : "Change Password"}
                   </Button>
                 </Box>
+                )}
               </CardContent>
             </Card>
           </Stack>
