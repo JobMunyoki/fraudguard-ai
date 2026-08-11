@@ -142,28 +142,30 @@ export default function Login() {
                 onChange={(event) => setPassword(event.target.value)}
                 sx={{ mb: 1 }}
                 required
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label={
-                          showPassword
-                            ? "Hide password"
-                            : "Show password"
-                        }
-                        onClick={() =>
-                          setShowPassword((previous) => !previous)
-                        }
-                        edge="end"
-                      >
-                        {showPassword ? (
-                          <VisibilityOff />
-                        ) : (
-                          <Visibility />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={
+                            showPassword
+                              ? "Hide password"
+                              : "Show password"
+                          }
+                          onClick={() =>
+                            setShowPassword((previous) => !previous)
+                          }
+                          edge="end"
+                        >
+                          {showPassword ? (
+                            <VisibilityOff />
+                          ) : (
+                            <Visibility />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
 
