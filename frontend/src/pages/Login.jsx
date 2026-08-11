@@ -7,12 +7,18 @@ import {
   Divider,
   Card,
   CardContent,
+  IconButton,
+  InputAdornment,
   CircularProgress,
   Container,
   TextField,
   Typography,
 } from "@mui/material";
 import api from "../api/axiosConfig";
+import {
+  Visibility,
+  VisibilityOff,
+} from "@mui/icons-material";
 
 const DEMO_EMAIL = "analyst.demo@fraudguard.ai";
 const DEMO_PASSWORD = "123456789";
@@ -22,6 +28,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const fillDemoCredentials = () => {
     setEmail(DEMO_EMAIL);
     setPassword(DEMO_PASSWORD);
@@ -129,12 +136,35 @@ export default function Login() {
 
               <TextField
                 label="Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 fullWidth
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 sx={{ mb: 1 }}
                 required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={
+                          showPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                        onClick={() =>
+                          setShowPassword((previous) => !previous)
+                        }
+                        edge="end"
+                      >
+                        {showPassword ? (
+                          <VisibilityOff />
+                        ) : (
+                          <Visibility />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
 
               <Box
